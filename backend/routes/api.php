@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PdfController;
 use Illuminate\Support\Facades\Route;
+
+Route::post('/pdfs/upload', [PdfController::class, 'upload']);
 
 Route::get('/auth/google', [AuthController::class, 'redirectToGoogle']);
 Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
