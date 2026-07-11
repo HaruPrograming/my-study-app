@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #fff;
+  --surface: #F4FAF5;
+  --surface2: #E8F4EA;
+  --accent: #2E9E5B;
+  --accent-soft: rgba(46, 158, 91, 0.10);
+  --accent-glow: rgba(46, 158, 91, 0.20);
+  --orange: #F57C2B;
+  --orange-soft: rgba(245, 124, 43, 0.10);
+  --text: #1A2E1E;
+  --muted: #6B8070;
+  --border: rgba(46, 158, 91, 0.13);
+}
+
+html, body {
+  width: 100%;
+  overscroll-behavior-y: none;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.8); opacity: 0; }
+  70% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
