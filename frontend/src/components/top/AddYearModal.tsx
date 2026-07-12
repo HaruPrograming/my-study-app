@@ -9,10 +9,12 @@ export function AddYearModal({ examId, onClose }: Props) {
   const { addYearEntry } = useStudyContext()
   const [title, setTitle] = useState('')
   const [pdfFile, setPdfFile] = useState<File | null>(null)
+  const [answerFile, setAnswerFile] = useState<File | null>(null)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState('')
   const overlayRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const answerFileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -25,6 +27,11 @@ export function AddYearModal({ examId, onClose }: Props) {
     setPdfFile(file)
   }
 
+  const handleAnswerFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null
+    setAnswerFile(file)
+  }
+
   const handleSave = async () => {
     if (!title) return
     setGenerating(true)
@@ -32,6 +39,7 @@ export function AddYearModal({ examId, onClose }: Props) {
 
     const formData = new FormData()
     if (pdfFile) formData.append('question_pdf', pdfFile)
+    if (answerFile) formData.append('answer_pdf', answerFile)
     formData.append('title', title)
     formData.append('exam_id', examId)
 
@@ -41,9 +49,8 @@ export function AddYearModal({ examId, onClose }: Props) {
         body: formData,
         credentials: 'include',
       })
-      if (!res.ok) throw new Error('upload failed')
-
       const data = await res.json()
+      if (!res.ok) throw new Error(data.message ?? 'upload failed')
       const entry: YearEntry = {
         id: `${examId}-${Date.now()}`,
         label: data.title ?? title,
@@ -54,8 +61,8 @@ export function AddYearModal({ examId, onClose }: Props) {
       }
       addYearEntry(examId, entry)
       onClose()
-    } catch {
-      setError('アップロードに失敗しました。もう一度お試しください。')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'アップロードに失敗しました。もう一度お試しください。')
     } finally {
       setGenerating(false)
     }
@@ -95,13 +102,23 @@ export function AddYearModal({ examId, onClose }: Props) {
           </div>
         </button>
 
+        <input
+          ref={answerFileInputRef}
+          type="file"
+          accept=".pdf"
+          className="hidden"
+          onChange={handleAnswerFileChange}
+        />
+
         <div className="text-[10px] font-bold tracking-wider mb-1" style={{ color: 'var(--muted)' }}>解答 PDF</div>
-        <button
+        <button onClick={() => answerFileInputRef.current?.click()}
           className="w-full rounded-[10px] px-3.5 py-3 flex items-center gap-2.5 mb-2.5 cursor-pointer"
-          style={{ background: 'var(--surface)', border: '1.5px dashed rgba(46,158,91,0.3)' }}>
+          style={{ background: answerFile ? 'var(--accent-soft)' : 'var(--surface)', border: `1.5px dashed ${answerFile ? 'var(--accent)' : 'rgba(46,158,91,0.3)'}` }}>
           <DocumentIcon size={22} color="var(--accent)" />
           <div className="text-left">
-            <div className="text-[11px] font-bold" style={{ color: 'var(--accent)' }}>タップしてアップロード</div>
+            <div className="text-[11px] font-bold" style={{ color: 'var(--accent)' }}>
+              {answerFile ? answerFile.name : 'タップしてアップロード'}
+            </div>
             <div className="text-[12px]" style={{ color: 'var(--muted)' }}>解答例PDFを選択（任意）</div>
           </div>
         </button>
