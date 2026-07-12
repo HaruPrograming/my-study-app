@@ -39,8 +39,8 @@ class PdfQuestionParserService
         for ($i = 0; $i < $count; $i++) {
             $num = (int) $nums[$i][0];
 
-            // 解答マップにない問番号（見出しの「問題番号」など）はスキップ
-            if (! isset($answerMap[$num])) {
+            // 解答マップが存在するときのみ、マップにない問番号をスキップ
+            if (! empty($answerMap) && ! isset($answerMap[$num])) {
                 continue;
             }
 
@@ -49,7 +49,7 @@ class PdfQuestionParserService
             $blockEnd   = ($i + 1 < $count) ? $found[$i + 1][1] : strlen($text);
             $block      = substr($text, $blockStart, $blockEnd - $blockStart);
 
-            [$body, $choices] = $this->extractBodyAndChoices($block, $answerMap[$num]);
+            [$body, $choices] = $this->extractBodyAndChoices($block, $answerMap[$num] ?? null);
 
             $questions[] = [
                 'number'  => $num,
@@ -73,7 +73,7 @@ class PdfQuestionParserService
     }
 
     /** @return array{0: string, 1: array} */
-    private function extractBodyAndChoices(string $block, string $correctLabel): array
+    private function extractBodyAndChoices(string $block, ?string $correctLabel): array
     {
         // ア〜エ を区切りとして分割（後方最長マッチで最後の出現を狙う）
         if (preg_match('/^(.*?)\s*ア\s*(.+?)\s*イ\s*(.+?)\s*ウ\s*(.+?)\s*エ\s*(.+?)\s*$/su', $block, $m)) {
@@ -94,7 +94,7 @@ class PdfQuestionParserService
             $choices[] = [
                 'label'      => $label,
                 'text'       => $choiceTexts[$label],
-                'is_correct' => ($label === $correctLabel),
+                'is_correct' => ($correctLabel !== null && $label === $correctLabel),
             ];
         }
 
