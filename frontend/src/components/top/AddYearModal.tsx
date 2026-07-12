@@ -8,10 +8,11 @@ type Props = { examId: string; onClose: () => void }
 export function AddYearModal({ examId, onClose }: Props) {
   const { addYearEntry } = useStudyContext()
   const [title, setTitle] = useState('')
-  const [uploadQ, setUploadQ] = useState(false)
-  const [uploadA, setUploadA] = useState(false)
+  const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [generating, setGenerating] = useState(false)
+  const [error, setError] = useState('')
   const overlayRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -19,22 +20,45 @@ export function AddYearModal({ examId, onClose }: Props) {
     return () => document.removeEventListener('keydown', handleKey)
   }, [onClose])
 
-  const handleSave = () => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null
+    setPdfFile(file)
+  }
+
+  const handleSave = async () => {
     if (!title) return
     setGenerating(true)
-    setTimeout(() => {
+    setError('')
+
+    const formData = new FormData()
+    if (pdfFile) formData.append('question_pdf', pdfFile)
+    formData.append('title', title)
+    formData.append('exam_id', examId)
+
+    try {
+      const res = await fetch('/api/pdfs/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      })
+      if (!res.ok) throw new Error('upload failed')
+
+      const data = await res.json()
       const entry: YearEntry = {
         id: `${examId}-${Date.now()}`,
-        label: title,
+        label: data.title ?? title,
         season: title.includes('春') ? 'spring' : 'autumn',
         isNew: true,
         completedCount: 0,
         totalCount: 80,
       }
       addYearEntry(examId, entry)
-      setGenerating(false)
       onClose()
-    }, 2500)
+    } catch {
+      setError('アップロードに失敗しました。もう一度お試しください。')
+    } finally {
+      setGenerating(false)
+    }
   }
 
   return (
@@ -50,34 +74,52 @@ export function AddYearModal({ examId, onClose }: Props) {
           className="w-full h-10 rounded-[10px] px-3 text-[13px] mb-3 outline-none"
           style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
 
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+
         <div className="text-[10px] font-bold tracking-wider mb-1" style={{ color: 'var(--muted)' }}>問題 PDF</div>
-        <button onClick={() => setUploadQ(true)}
+        <button onClick={() => fileInputRef.current?.click()}
           className="w-full rounded-[10px] px-3.5 py-3 flex items-center gap-2.5 mb-2.5 cursor-pointer"
-          style={{ background: uploadQ ? 'var(--accent-soft)' : 'var(--surface)', border: `1.5px dashed ${uploadQ ? 'var(--accent)' : 'rgba(46,158,91,0.3)'}` }}>
+          style={{ background: pdfFile ? 'var(--accent-soft)' : 'var(--surface)', border: `1.5px dashed ${pdfFile ? 'var(--accent)' : 'rgba(46,158,91,0.3)'}` }}>
           <FileIcon size={22} color="var(--accent)" />
           <div className="text-left">
-            <div className="text-[11px] font-bold" style={{ color: 'var(--accent)' }}>{uploadQ ? 'アップロード済み ✓' : 'タップしてアップロード'}</div>
+            <div className="text-[11px] font-bold" style={{ color: 'var(--accent)' }}>
+              {pdfFile ? pdfFile.name : 'タップしてアップロード'}
+            </div>
             <div className="text-[12px]" style={{ color: 'var(--muted)' }}>問題PDFを選択</div>
           </div>
         </button>
 
         <div className="text-[10px] font-bold tracking-wider mb-1" style={{ color: 'var(--muted)' }}>解答 PDF</div>
-        <button onClick={() => setUploadA(true)}
+        <button
           className="w-full rounded-[10px] px-3.5 py-3 flex items-center gap-2.5 mb-2.5 cursor-pointer"
-          style={{ background: uploadA ? 'var(--accent-soft)' : 'var(--surface)', border: `1.5px dashed ${uploadA ? 'var(--accent)' : 'rgba(46,158,91,0.3)'}` }}>
+          style={{ background: 'var(--surface)', border: '1.5px dashed rgba(46,158,91,0.3)' }}>
           <DocumentIcon size={22} color="var(--accent)" />
           <div className="text-left">
-            <div className="text-[11px] font-bold" style={{ color: 'var(--accent)' }}>{uploadA ? 'アップロード済み ✓' : 'タップしてアップロード'}</div>
-            <div className="text-[12px]" style={{ color: 'var(--muted)' }}>解答例PDFを選択</div>
+            <div className="text-[11px] font-bold" style={{ color: 'var(--accent)' }}>タップしてアップロード</div>
+            <div className="text-[12px]" style={{ color: 'var(--muted)' }}>解答例PDFを選択（任意）</div>
           </div>
         </button>
+
+        {error && (
+          <div role="alert" className="text-[12px] rounded-[8px] px-3 py-2 mb-2"
+            style={{ background: '#FEF2F2', color: '#DC2626', border: '1px solid #FCA5A5' }}>
+            {error}
+          </div>
+        )}
 
         <div className="flex gap-2 mt-1.5">
           <button onClick={onClose} className="flex-1 h-11 rounded-[12px] text-[13px] font-semibold"
             style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--muted)' }}>
             キャンセル
           </button>
-          <button onClick={handleSave} className="flex-[2] h-11 rounded-[12px] text-[13px] font-bold text-white"
+          <button onClick={handleSave} disabled={!title || !pdfFile}
+            className="flex-[2] h-11 rounded-[12px] text-[13px] font-bold text-white disabled:opacity-50"
             style={{ background: 'var(--accent)' }}>
             保存 → 解説を自動生成
           </button>
