@@ -50,6 +50,12 @@ class PdfController extends Controller
         $answerMap = $answerText ? $this->parser->parseAnswers($answerText) : [];
         $parsed    = $this->parser->parseQuestions($questionText, $answerMap);
 
+        if (count($parsed) === 0) {
+            return response()->json([
+                'message' => 'PDF から問題を抽出できませんでした。スキャン画像型の PDF には対応していません。テキストデータを含む PDF（IPA 公式サイトの最新年度など）をお試しください。',
+            ], 422);
+        }
+
         $saved = DB::transaction(function () use ($parsed, $examId, $examLabel) {
             $questions = [];
             foreach ($parsed as $item) {
