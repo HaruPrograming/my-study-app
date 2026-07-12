@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Question;
 use App\Services\QuestionGeneratorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,5 +28,17 @@ class QuestionController extends Controller
         );
 
         return response()->json($result);
+    }
+
+    public function index(string $examId): JsonResponse
+    {
+        $questions = Question::with('choices')
+            ->where('exam_id', $examId)
+            ->orderBy('number')
+            ->get()
+            ->map(fn (Question $q) => $q->toApiArray())
+            ->values();
+
+        return response()->json($questions);
     }
 }
