@@ -130,11 +130,13 @@ export function StudyPage() {
         </div>
 
         {/* Illustration */}
-        <IllustBlock
-          nodes={q.illustration.nodes}
-          subNodes={q.illustration.subNodes}
-          caption={q.illustration.caption}
-        />
+        {q.illustration && (
+          <IllustBlock
+            nodes={q.illustration.nodes}
+            subNodes={q.illustration.subNodes}
+            caption={q.illustration.caption}
+          />
+        )}
 
         {/* Points */}
         <div className="flex flex-col gap-1.5">

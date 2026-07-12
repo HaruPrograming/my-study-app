@@ -16,6 +16,11 @@ RUN { \
     echo 'opcache.jit_buffer_size=64m'; \
 } > /usr/local/etc/php/conf.d/opcache.ini
 
+RUN { \
+    echo 'upload_max_filesize=30M'; \
+    echo 'post_max_size=35M'; \
+} > /usr/local/etc/php/conf.d/uploads.ini
+
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh

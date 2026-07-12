@@ -19,7 +19,7 @@ return new class extends Migration
             $table->unsignedInteger('number');
             $table->unsignedInteger('total_count');
             $table->text('body');
-            $table->json('illustration');
+            $table->json('illustration')->nullable();
             $table->json('points');
             $table->timestamps();
 

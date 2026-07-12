@@ -49,8 +49,9 @@ export function AddYearModal({ examId, onClose }: Props) {
         body: formData,
         credentials: 'include',
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message ?? 'upload failed')
+      let data: Record<string, unknown> = {}
+      try { data = await res.json() } catch { /* HTML レスポンス時は無視 */ }
+      if (!res.ok) throw new Error((data.message as string) ?? 'アップロードに失敗しました。もう一度お試しください。')
       const entry: YearEntry = {
         id: `${examId}-${Date.now()}`,
         label: data.title ?? title,
