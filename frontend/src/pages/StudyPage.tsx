@@ -1,11 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ChartIcon, PauseIcon, CheckIcon, TargetIcon, BoltIcon, BulbIcon } from '../components/icons'
 import { ProgressBar } from '../components/common/ProgressBar'
 import { IllustBlock } from '../components/study/IllustBlock'
 import { useStudyContext } from '../context/StudyContext'
-import { questions } from '../data/questions'
-import type { Point } from '../types'
+import type { Question, Point } from '../types'
 
 function PointIcon({ icon }: { icon: Point['icon'] }) {
   switch (icon) {
@@ -20,8 +19,29 @@ export function StudyPage() {
   const navigate = useNavigate()
   const { completeQuestion } = useStudyContext()
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [examQuestions, setExamQuestions] = useState<Question[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const examQuestions = questions.filter(q => q.examId === examId)
+  useEffect(() => {
+    fetch(`/api/questions/${examId}`)
+      .then(res => {
+        if (!res.ok) throw new Error('fetch failed')
+        return res.json()
+      })
+      .then((data: Question[]) => setExamQuestions(data))
+      .catch(() => setExamQuestions([]))
+      .finally(() => setLoading(false))
+  }, [examId])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-dvh" role="status">
+        <div className="w-8 h-8 rounded-full border-4 border-t-transparent animate-spin"
+          style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
+      </div>
+    )
+  }
+
   const q = examQuestions[currentIndex]
 
   if (!q) return <div className="p-4">問題が見つかりません</div>
