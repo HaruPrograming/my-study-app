@@ -28,7 +28,7 @@ export type Question = {
     nodes: IllustNode[]
     subNodes?: IllustNode[]
     caption: string
-  }
+  } | null
   points: Point[]
 }
 

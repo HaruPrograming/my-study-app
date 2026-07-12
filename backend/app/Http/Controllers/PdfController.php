@@ -2,14 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Choice;
+use App\Models\Question;
+use App\Services\PdfQuestionParserService;
 use App\Services\PdfTextExtractorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class PdfController extends Controller
 {
-    public function __construct(private PdfTextExtractorService $extractor) {}
+    public function __construct(
+        private PdfTextExtractorService $extractor,
+        private PdfQuestionParserService $parser,
+    ) {}
 
     public function upload(Request $request): JsonResponse
     {
@@ -37,11 +44,45 @@ class PdfController extends Controller
             return response()->json(['message' => $message], 422);
         }
 
+        $examId    = $request->input('exam_id');
+        $examLabel = $request->input('title');
+
+        $answerMap = $answerText ? $this->parser->parseAnswers($answerText) : [];
+        $parsed    = $this->parser->parseQuestions($questionText, $answerMap);
+
+        $saved = DB::transaction(function () use ($parsed, $examId, $examLabel) {
+            $questions = [];
+            foreach ($parsed as $item) {
+                $question = Question::create([
+                    'exam_id'     => $examId,
+                    'exam_label'  => $examLabel,
+                    'category'    => '科目A',
+                    'number'      => $item['number'],
+                    'total_count' => count($parsed),
+                    'body'        => $item['body'],
+                    'illustration' => null,
+                    'points'      => [],
+                ]);
+
+                foreach ($item['choices'] as $c) {
+                    Choice::create([
+                        'question_id' => $question->id,
+                        'label'       => $c['label'],
+                        'text'        => $c['text'],
+                        'is_correct'  => $c['is_correct'],
+                    ]);
+                }
+
+                $questions[] = $question->load('choices')->toApiArray();
+            }
+            return $questions;
+        });
+
         return response()->json([
-            'title'         => $request->input('title'),
-            'exam_id'       => $request->input('exam_id'),
-            'question_text' => $questionText,
-            'answer_text'   => $answerText,
+            'title'          => $examLabel,
+            'exam_id'        => $examId,
+            'question_count' => count($saved),
+            'questions'      => $saved,
         ]);
     }
 }
