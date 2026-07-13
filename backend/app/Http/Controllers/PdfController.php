@@ -37,6 +37,15 @@ class PdfController extends Controller
         return response()->json(['upload_id' => $upload->id, 'status' => 'pending'], 202);
     }
 
+    public function listDone(): JsonResponse
+    {
+        $uploads = PdfUpload::where('status', 'done')
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'exam_id', 'exam_label', 'question_count', 'created_at']);
+
+        return response()->json($uploads);
+    }
+
     public function status(int $id): JsonResponse
     {
         $upload = PdfUpload::find($id);
