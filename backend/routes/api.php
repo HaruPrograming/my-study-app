@@ -6,6 +6,7 @@ use App\Http\Controllers\QuestionController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/pdfs/upload', [PdfController::class, 'upload']);
+Route::get('/pdfs/{id}/status', [PdfController::class, 'status']);
 Route::post('/questions/generate', [QuestionController::class, 'generate']);
 Route::get('/questions/{examId}', [QuestionController::class, 'index']);
 
