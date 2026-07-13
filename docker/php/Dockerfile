@@ -4,6 +4,8 @@ WORKDIR /var/www/html
 
 RUN apt-get update && apt-get install -y \
     git unzip curl libzip-dev \
+    poppler-utils \
+    tesseract-ocr tesseract-ocr-jpn \
     && docker-php-ext-install pdo_mysql zip opcache \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -24,5 +26,5 @@ RUN { \
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN sed -i 's/\r//' /usr/local/bin/entrypoint.sh && chmod +x /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
