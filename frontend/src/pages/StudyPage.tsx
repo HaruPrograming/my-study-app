@@ -152,6 +152,19 @@ export function StudyPage() {
             </div>
           ))}
         </div>
+
+        {/* Explanation */}
+        {q.explanation && (
+          <>
+            <div className="relative flex items-center justify-center mt-[18px] mb-[14px]" style={{ height: '1px', background: 'var(--border)' }}>
+              <span className="absolute bg-white px-2.5 text-[10px] font-bold tracking-[.08em]" style={{ color: 'var(--muted)' }}>解説</span>
+            </div>
+            <div className="rounded-[10px] px-3.5 py-3 text-[12px] leading-relaxed"
+              style={{ background: 'var(--accent-soft)', border: '1px solid rgba(46,158,91,0.2)', color: 'var(--text)', whiteSpace: 'pre-wrap' }}>
+              {q.explanation}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Footer */}

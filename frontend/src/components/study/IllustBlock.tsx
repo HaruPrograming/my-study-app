@@ -1,4 +1,4 @@
-import { KeyboardIcon, CPUIcon, MonitorDisplayIcon, MemoryIcon, StorageIcon } from '../icons'
+import { KeyboardIcon, CPUIcon, MonitorDisplayIcon, MemoryIcon, StorageIcon, BookIcon, DocumentIcon, FileIcon, ChartIcon, LockIcon } from '../icons'
 
 type IllustNode = { icon: string; label: string; highlight?: boolean }
 type Props = {
@@ -11,9 +11,14 @@ function NodeIcon({ icon, highlight }: { icon: string; highlight?: boolean }) {
   const color = highlight ? 'rgba(255,255,255,0.95)' : 'var(--accent)'
   const size = 28
   switch (icon) {
-    case 'keyboard': return <KeyboardIcon size={size} color={color} />
-    case 'cpu':      return <CPUIcon      size={size} color={color} />
-    case 'monitor':  return <MonitorDisplayIcon size={size} color={color} />
+    case 'keyboard':  return <KeyboardIcon      size={size} color={color} />
+    case 'cpu':       return <CPUIcon           size={size} color={color} />
+    case 'monitor':   return <MonitorDisplayIcon size={size} color={color} />
+    case 'book':      return <BookIcon          size={size} color={color} />
+    case 'document':  return <DocumentIcon      size={size} color={color} />
+    case 'file':      return <FileIcon          size={size} color={color} />
+    case 'chart':     return <ChartIcon         size={size} color={color} />
+    case 'lock':      return <LockIcon          size={size} color={color} />
     default: return null
   }
 }
