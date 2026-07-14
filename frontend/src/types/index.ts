@@ -57,3 +57,9 @@ export type ExamProgress = {
   done: number
   total: number
 }
+
+export type ProcessingUpload = {
+  uploadId: number
+  examId: string
+  examLabel: string
+}

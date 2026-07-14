@@ -1,22 +1,19 @@
 import { useState, useRef, useEffect } from 'react'
 import { FileIcon, DocumentIcon } from '../icons'
 import { useStudyContext } from '../../context/StudyContext'
-import type { YearEntry } from '../../types'
 
 type Props = { examId: string; onClose: () => void }
 
 export function AddYearModal({ examId, onClose }: Props) {
-  const { addYearEntry } = useStudyContext()
+  const { startProcessing } = useStudyContext()
   const [title, setTitle] = useState('')
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [answerFile, setAnswerFile] = useState<File | null>(null)
-  const [processing, setProcessing] = useState(false)
-  const [statusText, setStatusText] = useState('アップロード中…')
+  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const overlayRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const answerFileInputRef = useRef<HTMLInputElement>(null)
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -24,56 +21,13 @@ export function AddYearModal({ examId, onClose }: Props) {
     return () => document.removeEventListener('keydown', handleKey)
   }, [onClose])
 
-  useEffect(() => {
-    return () => { if (pollingRef.current) clearInterval(pollingRef.current) }
-  }, [])
-
-  const startPolling = (uploadId: number, examLabel: string) => {
-    setStatusText('問題を解析中… しばらくお待ちください')
-
-    pollingRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/pdfs/${uploadId}/status`, { credentials: 'include' })
-        if (!res.ok) return
-        const data = await res.json() as {
-          status: string
-          question_count: number
-          error_message?: string
-          exam_id: string
-          exam_label: string
-        }
-
-        if (data.status === 'done') {
-          clearInterval(pollingRef.current!)
-          const entry: YearEntry = {
-            id: `${examId}-${uploadId}`,
-            label: data.exam_label ?? examLabel,
-            season: examLabel.includes('春') ? 'spring' : 'autumn',
-            isNew: true,
-            completedCount: 0,
-            totalCount: data.question_count,
-          }
-          addYearEntry(examId, entry)
-          onClose()
-        } else if (data.status === 'failed') {
-          clearInterval(pollingRef.current!)
-          setProcessing(false)
-          setError(data.error_message ?? 'PDF の処理に失敗しました。もう一度お試しください。')
-        }
-      } catch {
-        // ネットワークエラーは次のポーリングで再試行
-      }
-    }, 3000)
-  }
-
   const handleSave = async () => {
-    if (!title) return
-    setProcessing(true)
+    if (!title || !pdfFile) return
+    setUploading(true)
     setError('')
-    setStatusText('アップロード中…')
 
     const formData = new FormData()
-    if (pdfFile) formData.append('question_pdf', pdfFile)
+    formData.append('question_pdf', pdfFile)
     if (answerFile) formData.append('answer_pdf', answerFile)
     formData.append('title', title)
     formData.append('exam_id', examId)
@@ -86,12 +40,13 @@ export function AddYearModal({ examId, onClose }: Props) {
       })
       let data: Record<string, unknown> = {}
       try { data = await res.json() } catch { /* HTML レスポンス時は無視 */ }
-      if (!res.ok) throw new Error((data.message as string) ?? 'アップロードに失敗しました。もう一度お試しください。')
+      if (!res.ok) throw new Error((data.message as string) ?? 'アップロードに失敗しました。')
 
-      startPolling(data.upload_id as number, title)
+      startProcessing({ uploadId: data.upload_id as number, examId, examLabel: title })
+      onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'アップロードに失敗しました。もう一度お試しください。')
-      setProcessing(false)
+      setUploading(false)
     }
   }
 
@@ -146,27 +101,17 @@ export function AddYearModal({ examId, onClose }: Props) {
         )}
 
         <div className="flex gap-2 mt-1.5">
-          <button onClick={onClose} disabled={processing} className="flex-1 h-11 rounded-[12px] text-[13px] font-semibold disabled:opacity-50"
+          <button onClick={onClose} disabled={uploading} className="flex-1 h-11 rounded-[12px] text-[13px] font-semibold disabled:opacity-50"
             style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--muted)' }}>
             キャンセル
           </button>
-          <button onClick={handleSave} disabled={!title || !pdfFile || processing}
+          <button onClick={handleSave} disabled={!title || !pdfFile || uploading}
             className="flex-[2] h-11 rounded-[12px] text-[13px] font-bold text-white disabled:opacity-50"
             style={{ background: 'var(--accent)' }}>
-            保存して読み込む
+            {uploading ? 'アップロード中…' : '保存して読み込む'}
           </button>
         </div>
       </div>
-
-      {processing && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4"
-          style={{ background: 'rgba(255,255,255,0.92)', zIndex: 200 }}>
-          <div className="w-12 h-12 rounded-full border-[3px] border-t-transparent"
-            style={{ borderColor: 'var(--surface2)', borderTopColor: 'var(--accent)', animation: 'spin .8s linear infinite' }} />
-          <div className="text-[14px] font-bold" style={{ color: 'var(--text)' }}>{statusText}</div>
-          <div className="text-[12px]" style={{ color: 'var(--muted)' }}>アプリを閉じても処理は継続されます</div>
-        </div>
-      )}
     </div>
   )
 }

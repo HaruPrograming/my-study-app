@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { BottomNav } from '../components/layout/BottomNav'
 import { StatCard } from '../components/common/StatCard'
 import { AddYearModal } from '../components/top/AddYearModal'
+import { ProcessingIndicator } from '../components/common/ProcessingIndicator'
 import { MonitorIcon, AppliedInfoIcon, LockIcon, SeasonSpringIcon, SeasonAutumnIcon, FireIcon } from '../components/icons'
 import { useStudyContext } from '../context/StudyContext'
 import type { Exam, YearEntry } from '../types'
@@ -136,6 +137,7 @@ export function TopPage() {
       </div>
 
       <BottomNav />
+      <ProcessingIndicator />
       {modalOpen && <AddYearModal examId={selectedExamId} onClose={() => setModalOpen(false)} />}
     </div>
   )

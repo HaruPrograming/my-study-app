@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import type { ExamProgress, YearEntry } from '../types'
+import type { ExamProgress, YearEntry, ProcessingUpload } from '../types'
 import { exams as initialExams } from '../data/exams'
 import type { Exam } from '../types'
 
@@ -10,9 +10,11 @@ type StudyContextValue = {
   examProgresses: ExamProgress[]
   studyDays: Set<string>
   exams: Exam[]
+  processingUploads: ProcessingUpload[]
   completeQuestion: (examId: string) => void
   addStudyDay: (date: string) => void
   addYearEntry: (examId: string, entry: YearEntry) => void
+  startProcessing: (upload: ProcessingUpload) => void
 }
 
 const StudyContext = createContext<StudyContextValue | null>(null)
@@ -22,7 +24,9 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   const [completedQuestions, setCompletedQuestions] = useState(142)
   const [overallProgress] = useState(42)
   const [exams, setExams] = useState<Exam[]>(initialExams)
+  const [processingUploads, setProcessingUploads] = useState<ProcessingUpload[]>([])
 
+  // マウント時に DB から完了済み年度一覧を取得
   useEffect(() => {
     fetch('/api/pdfs', { credentials: 'include' })
       .then(r => r.json())
@@ -42,8 +46,58 @@ export function StudyProvider({ children }: { children: ReactNode }) {
             })),
         })))
       })
-      .catch(() => { /* ネットワークエラー時はハードコードデータを維持 */ })
+      .catch(() => {})
   }, [])
+
+  // バックグラウンド処理中のアップロードをポーリング
+  useEffect(() => {
+    if (processingUploads.length === 0) return
+
+    const interval = setInterval(async () => {
+      const results = await Promise.all(
+        processingUploads.map(async u => {
+          try {
+            const res = await fetch(`/api/pdfs/${u.uploadId}/status`, { credentials: 'include' })
+            if (!res.ok) return { ...u, status: 'pending' as const, questionCount: 0 }
+            const data = await res.json() as { status: string; question_count: number }
+            return { ...u, status: data.status, questionCount: data.question_count }
+          } catch {
+            return { ...u, status: 'pending' as const, questionCount: 0 }
+          }
+        })
+      )
+
+      const doneIds = new Set<number>()
+      const failedIds = new Set<number>()
+
+      results.forEach(r => {
+        if (r.status === 'done') {
+          doneIds.add(r.uploadId)
+          const entry: YearEntry = {
+            id: `upload-${r.uploadId}`,
+            label: r.examLabel,
+            season: r.examLabel.includes('春') ? 'spring' : 'autumn',
+            isNew: true,
+            completedCount: 0,
+            totalCount: r.questionCount ?? 0,
+          }
+          setExams(prev => prev.map(e =>
+            e.id === r.examId ? { ...e, years: [entry, ...e.years] } : e
+          ))
+        } else if (r.status === 'failed') {
+          failedIds.add(r.uploadId)
+        }
+      })
+
+      if (doneIds.size > 0 || failedIds.size > 0) {
+        setProcessingUploads(prev =>
+          prev.filter(u => !doneIds.has(u.uploadId) && !failedIds.has(u.uploadId))
+        )
+      }
+    }, 3000)
+
+    return () => clearInterval(interval)
+  }, [processingUploads])
 
   const [studyDays, setStudyDays] = useState<Set<string>>(
     new Set(['2026-07-01','2026-07-03','2026-07-04','2026-07-06','2026-07-07','2026-07-08','2026-07-10','2026-07-11'])
@@ -68,11 +122,15 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     ))
   }
 
+  const startProcessing = (upload: ProcessingUpload) => {
+    setProcessingUploads(prev => [...prev, upload])
+  }
+
   return (
     <StudyContext.Provider value={{
       streakDays, completedQuestions, overallProgress,
-      examProgresses, studyDays, exams,
-      completeQuestion, addStudyDay, addYearEntry,
+      examProgresses, studyDays, exams, processingUploads,
+      completeQuestion, addStudyDay, addYearEntry, startProcessing,
     }}>
       {children}
     </StudyContext.Provider>
