@@ -26,7 +26,7 @@ class ExplanationTest extends TestCase
         ]);
         Choice::create(['question_id' => $q->id, 'label' => 'ア', 'text' => '演算を行う', 'is_correct' => true]);
 
-        $res = $this->getJson('/api/questions/fe');
+        $res = $this->getJson('/api/questions/fe/' . rawurlencode('2024年 春期'));
 
         $res->assertOk()
             ->assertJsonFragment(['explanation' => 'CPUは中央処理装置であり、演算・制御を担当する。']);
@@ -47,7 +47,7 @@ class ExplanationTest extends TestCase
         ]);
         Choice::create(['question_id' => $q->id, 'label' => 'ア', 'text' => '選択肢', 'is_correct' => true]);
 
-        $res = $this->getJson('/api/questions/fe');
+        $res = $this->getJson('/api/questions/fe/' . rawurlencode('2024年 春期'));
 
         $res->assertOk()
             ->assertJsonFragment(['explanation' => null]);
@@ -76,7 +76,7 @@ class ExplanationTest extends TestCase
             'points'      => [],
         ]);
 
-        $res = $this->getJson('/api/questions/fe');
+        $res = $this->getJson('/api/questions/fe/' . rawurlencode('2024年 春期'));
 
         $res->assertOk()->assertJsonCount(1);
         $res->assertJsonFragment(['examId' => 'fe']);
