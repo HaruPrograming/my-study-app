@@ -80,8 +80,10 @@ class ProcessPdfJob implements ShouldQueue
                 return;
             }
 
-            $count = DB::transaction(function () use ($parsed, $upload) {
+            $count = DB::transaction(function () use ($parsed, $upload, $extractor) {
                 foreach ($parsed as $item) {
+                    $rich = $extractor->generateRichContent($item);
+
                     $question = Question::create([
                         'exam_id'      => $upload->exam_id,
                         'exam_label'   => $upload->exam_label,
@@ -89,8 +91,9 @@ class ProcessPdfJob implements ShouldQueue
                         'number'       => $item['number'],
                         'total_count'  => count($parsed),
                         'body'         => $item['body'],
-                        'illustration' => null,
-                        'points'       => [],
+                        'illustration' => $rich['illustration'],
+                        'points'       => $rich['points'],
+                        'explanation'  => $rich['explanation'],
                     ]);
 
                     foreach ($item['choices'] as $c) {
