@@ -57,15 +57,19 @@ export function StudyPage() {
     }
   }
 
+  const handlePrev = () => {
+    setCurrentIndex(i => i - 1)
+  }
+
   return (
     <div className="flex flex-col h-dvh" style={{ background: 'var(--bg)' }}>
       {/* Header */}
       <div className="flex items-center px-[18px] py-2 flex-shrink-0"
         style={{ borderBottom: '1px solid var(--border)' }}>
         <button onClick={() => navigate('/')}
-          className="w-8 h-8 rounded-[9px] flex items-center justify-center flex-shrink-0 text-[14px] font-bold"
-          style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--accent)' }}>
-          ←
+          className="h-8 px-2.5 rounded-[9px] flex items-center justify-center flex-shrink-0 gap-1 text-[11px] font-bold"
+          style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--muted)' }}>
+          <PauseIcon size={12} color="var(--muted)" /> 中断
         </button>
         <div className="flex-1 text-center">
           <div className="text-[10px]" style={{ color: 'var(--muted)' }}>
@@ -170,11 +174,13 @@ export function StudyPage() {
       {/* Footer */}
       <div className="fixed bottom-0 left-0 w-full flex gap-2 px-[18px] pt-2.5"
         style={{ background: 'linear-gradient(to top,#fff 65%,transparent)', paddingBottom: 'calc(1.75rem + env(safe-area-inset-bottom))' }}>
-        <button onClick={() => navigate('/')}
-          className="flex-1 h-[50px] rounded-[13px] text-[12px] font-semibold flex items-center justify-center gap-1.5"
-          style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--muted)' }}>
-          <PauseIcon size={14} color="var(--muted)" /> 中断
-        </button>
+        {currentIndex > 0 && (
+          <button onClick={handlePrev} aria-label="前へ"
+            className="flex-1 h-[50px] rounded-[13px] text-[13px] font-bold"
+            style={{ background: 'var(--surface)', border: '1.5px solid var(--accent)', color: 'var(--accent)' }}>
+            ← 前へ
+          </button>
+        )}
         <button onClick={handleNext}
           className="flex-[2] h-[50px] rounded-[13px] text-[15px] font-bold text-white"
           style={{ background: 'var(--accent)', boxShadow: '0 4px 12px var(--accent-glow)' }}>
