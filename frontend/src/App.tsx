@@ -11,8 +11,8 @@ function App() {
       <StudyProvider>
         <Routes>
           <Route path="/" element={<TopPage />} />
-          <Route path="/study/:examId" element={<StudyPage />} />
-          <Route path="/study/:examId/complete" element={<CompletePage />} />
+          <Route path="/study/:examId/:examLabel" element={<StudyPage />} />
+          <Route path="/study/:examId/:examLabel/complete" element={<CompletePage />} />
           <Route path="/record" element={<RecordPage />} />
         </Routes>
       </StudyProvider>

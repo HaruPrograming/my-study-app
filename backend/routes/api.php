@@ -9,7 +9,7 @@ Route::get('/pdfs', [PdfController::class, 'listDone']);
 Route::post('/pdfs/upload', [PdfController::class, 'upload']);
 Route::get('/pdfs/{id}/status', [PdfController::class, 'status']);
 Route::post('/questions/generate', [QuestionController::class, 'generate']);
-Route::get('/questions/{examId}', [QuestionController::class, 'index']);
+Route::get('/questions/{examId}/{examLabel}', [QuestionController::class, 'index']);
 
 Route::get('/auth/google', [AuthController::class, 'redirectToGoogle']);
 Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
