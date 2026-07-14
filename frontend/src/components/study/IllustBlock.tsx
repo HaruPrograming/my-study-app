@@ -59,7 +59,7 @@ export function IllustBlock({ nodes, subNodes, caption }: Props) {
             <div className="text-[10px] font-bold" style={{ color: 'var(--orange)' }}>＋ 記憶装置</div>
             <div className="flex gap-2 items-center">
               {subNodes.map((sn, i) => (
-                <div key={sn.icon} className="flex items-center gap-2">
+                <div key={i} className="flex items-center gap-2">
                   {i > 0 && <span className="text-[13px]" style={{ color: 'var(--muted)' }}>＋</span>}
                   <div className="flex flex-col items-center gap-0.5 rounded-[10px] px-2.5 py-1.5"
                     style={{ background: '#fff', border: '1.5px solid rgba(245,124,43,0.25)' }}>

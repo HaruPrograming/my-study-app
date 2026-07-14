@@ -126,7 +126,7 @@ export function TopPage() {
             <YearCard key={year.id} year={year}
               selected={selectedYearId === year.id}
               onSelect={() => setSelectedYearId(prev => prev === year.id ? null : year.id)}
-              onStart={() => navigate(`/study/${selectedExamId}`)} />
+              onStart={() => navigate(`/study/${selectedExamId}/${encodeURIComponent(year.label)}`)} />
           ))}
           <button onClick={() => setModalOpen(true)}
             className="flex items-center justify-center gap-1.5 w-full rounded-[12px] py-2.5 text-[12px] font-bold mt-1.5 cursor-pointer"

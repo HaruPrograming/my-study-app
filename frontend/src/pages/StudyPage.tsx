@@ -15,7 +15,7 @@ function PointIcon({ icon }: { icon: Point['icon'] }) {
 }
 
 export function StudyPage() {
-  const { examId } = useParams<{ examId: string }>()
+  const { examId, examLabel } = useParams<{ examId: string; examLabel: string }>()
   const navigate = useNavigate()
   const { completeQuestion } = useStudyContext()
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -23,7 +23,7 @@ export function StudyPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(`/api/questions/${examId}`)
+    fetch(`/api/questions/${examId}/${examLabel}`)
       .then(res => {
         if (!res.ok) throw new Error('fetch failed')
         return res.json()
@@ -31,7 +31,7 @@ export function StudyPage() {
       .then((data: Question[]) => setExamQuestions(data))
       .catch(() => setExamQuestions([]))
       .finally(() => setLoading(false))
-  }, [examId])
+  }, [examId, examLabel])
 
   if (loading) {
     return (
@@ -53,7 +53,7 @@ export function StudyPage() {
     if (currentIndex < examQuestions.length - 1) {
       setCurrentIndex(i => i + 1)
     } else {
-      navigate(`/study/${examId}/complete`)
+      navigate(`/study/${examId}/${examLabel}/complete`)
     }
   }
 
