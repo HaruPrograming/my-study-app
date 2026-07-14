@@ -541,4 +541,104 @@ PROMPT;
             @rmdir($tmpDir);
         }
     }
+
+    /**
+     * 問題・選択肢・正解をもとに illustration / points / explanation を一括生成する。
+     * API キー未設定または失敗時は空の配列を返す。
+     */
+    public function generateRichContent(array $question): array
+    {
+        $empty = ['illustration' => null, 'points' => [], 'explanation' => null];
+
+        $apiKey = config('services.anthropic.key');
+        if (!$apiKey) {
+            return $empty;
+        }
+
+        $correctLabel = collect($question['choices'])
+            ->where('is_correct', true)
+            ->value('label') ?? '不明';
+
+        $choicesText = collect($question['choices'])
+            ->map(fn($c) => "{$c['label']}: {$c['text']}")
+            ->implode("\n");
+
+        $prompt = <<<PROMPT
+以下のIT資格試験の問題について、学習コンテンツを JSON 形式で生成してください。
+JSONのみを出力してください（前後の説明・マークダウン不要）。
+
+{
+  "illustration": {
+    "nodes": [{"icon": "アイコン名", "label": "ラベル（改行は\\nで）", "highlight": true}],
+    "subNodes": [{"icon": "アイコン名", "label": "ラベル"}],
+    "caption": "図の説明（<b>強調語</b>タグ使用可）"
+  },
+  "points": [
+    {"icon": "target", "text": "重要概念（<b>強調語</b>タグ使用可）"},
+    {"icon": "bolt", "text": "試験頻出ポイント"},
+    {"icon": "bulb", "text": "補足・豆知識"}
+  ],
+  "explanation": "解説文（プレーンテキスト、200〜300字）"
+}
+
+【illustration ルール】
+- nodes の icon: keyboard(入力), cpu(CPU・演算・処理), monitor(出力・画面), book(知識・学習), document(文書・仕様), file(ファイル・データ), chart(統計・分析), lock(セキュリティ)
+- subNodes の icon: memory(メモリ・一時記憶), storage(HDD・永続記憶)
+- nodes は2〜4個、highlight は正解に直接関係する node を1個だけ true
+- IT・コンピュータの概念に関係しない問題は "illustration": null
+- subNodes は記憶装置の概念があるときのみ（省略可）
+
+【points ルール】
+- 必ず3個、icon は target/bolt/bulb を1つずつ使う
+- <b>重要語</b> で緑色強調
+
+【explanation ルール】
+- プレーンテキスト（マークダウン記法不要）
+- 200〜300字
+
+【問題】
+{$question['body']}
+
+【選択肢】
+{$choicesText}
+
+【正解】{$correctLabel}
+PROMPT;
+
+        try {
+            $response = Http::withHeaders([
+                'x-api-key'         => $apiKey,
+                'anthropic-version' => '2023-06-01',
+                'content-type'      => 'application/json',
+            ])->timeout(45)->post(self::VISION_API_URL, [
+                'model'      => 'claude-haiku-4-5-20251001',
+                'max_tokens' => 1024,
+                'messages'   => [
+                    ['role' => 'user', 'content' => $prompt],
+                ],
+            ]);
+
+            if (!$response->successful()) {
+                return $empty;
+            }
+
+            $text = trim($response->json('content.0.text', ''));
+            // JSON のみ抽出（```json ... ``` を除去）
+            $text = preg_replace('/^```(?:json)?\s*/m', '', $text);
+            $text = preg_replace('/\s*```$/m', '', $text);
+
+            $decoded = json_decode($text, true);
+            if (!is_array($decoded)) {
+                return $empty;
+            }
+
+            return [
+                'illustration' => $decoded['illustration'] ?? null,
+                'points'       => $decoded['points'] ?? [],
+                'explanation'  => $decoded['explanation'] ?? null,
+            ];
+        } catch (\Throwable) {
+            return $empty;
+        }
+    }
 }

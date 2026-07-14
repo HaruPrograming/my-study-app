@@ -30,6 +30,7 @@ export type Question = {
     caption: string
   } | null
   points: Point[]
+  explanation?: string | null
 }
 
 export type YearEntry = {

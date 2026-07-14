@@ -9,7 +9,7 @@ class Question extends Model
 {
     protected $fillable = [
         'exam_id', 'exam_label', 'category', 'number',
-        'total_count', 'body', 'illustration', 'points',
+        'total_count', 'body', 'illustration', 'points', 'explanation',
     ];
 
     protected $casts = [
@@ -39,6 +39,7 @@ class Question extends Model
             ])->all(),
             'illustration' => $this->illustration,
             'points'       => $this->points,
+            'explanation'  => $this->explanation,
         ];
     }
 }
