@@ -26,15 +26,17 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   const [exams, setExams] = useState<Exam[]>(initialExams)
   const [processingUploads, setProcessingUploads] = useState<ProcessingUpload[]>([])
 
-  // マウント時に DB から完了済み年度一覧と進捗を取得
+  // マウント時に DB から完了済み年度一覧・進捗・処理中アップロードを取得
   useEffect(() => {
     Promise.all([
       fetch('/api/pdfs', { credentials: 'include' }).then(r => r.json()),
       fetch('/api/progress').then(r => r.json()).catch(() => [] as Array<{ exam_id: string; exam_label: string; completed_count: number }>),
+      fetch('/api/pdfs/processing', { credentials: 'include' }).then(r => r.json()).catch(() => [] as Array<{ id: number; exam_id: string; exam_label: string }>),
     ])
-      .then(([uploads, progressList]: [
+      .then(([uploads, progressList, processingList]: [
         Array<{ id: number; exam_id: string; exam_label: string; question_count: number; created_at: string }>,
         Array<{ exam_id: string; exam_label: string; completed_count: number }>,
+        Array<{ id: number; exam_id: string; exam_label: string }>,
       ]) => {
         const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
         setExams(prev => prev.map(exam => ({
@@ -53,6 +55,14 @@ export function StudyProvider({ children }: { children: ReactNode }) {
               }
             }),
         })))
+
+        if (processingList.length > 0) {
+          setProcessingUploads(processingList.map(u => ({
+            uploadId: u.id,
+            examId: u.exam_id,
+            examLabel: u.exam_label,
+          })))
+        }
       })
       .catch(() => {})
   }, [])
