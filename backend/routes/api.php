@@ -2,8 +2,12 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PdfController;
+use App\Http\Controllers\ProgressController;
 use App\Http\Controllers\QuestionController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/progress', [ProgressController::class, 'index']);
+Route::post('/progress', [ProgressController::class, 'store']);
 
 Route::get('/pdfs', [PdfController::class, 'listDone']);
 Route::post('/pdfs/upload', [PdfController::class, 'upload']);
