@@ -22,14 +22,23 @@ class ExplanationTest extends TestCase
             'body'        => 'CPUの役割はどれか。',
             'illustration' => null,
             'points'      => [],
-            'explanation' => 'CPUは中央処理装置であり、演算・制御を担当する。',
+            'explanation' => [
+                ['title' => '役割', 'body' => 'CPUは中央処理装置であり、演算・制御を担当する。'],
+                ['title' => '構成', 'body' => 'ALUと制御装置から成る。'],
+                ['title' => '特徴', 'body' => 'クロック周波数が高いほど処理速度が速い。'],
+            ],
         ]);
         Choice::create(['question_id' => $q->id, 'label' => 'ア', 'text' => '演算を行う', 'is_correct' => true]);
 
         $res = $this->getJson('/api/questions/fe/' . rawurlencode('2024年 春期'));
 
-        $res->assertOk()
-            ->assertJsonFragment(['explanation' => 'CPUは中央処理装置であり、演算・制御を担当する。']);
+        $res->assertOk();
+        $data = $res->json();
+        $explanation = $data[0]['explanation'];
+        $this->assertIsArray($explanation);
+        $this->assertCount(3, $explanation);
+        $this->assertSame('役割', $explanation[0]['title']);
+        $this->assertSame('CPUは中央処理装置であり、演算・制御を担当する。', $explanation[0]['body']);
     }
 
     public function test_explanationがnullの問題もAPIで取得できる(): void

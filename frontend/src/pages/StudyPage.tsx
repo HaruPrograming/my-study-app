@@ -158,14 +158,19 @@ export function StudyPage() {
         </div>
 
         {/* Explanation */}
-        {q.explanation && (
+        {q.explanation && q.explanation.length > 0 && (
           <>
             <div className="relative flex items-center justify-center mt-[18px] mb-[14px]" style={{ height: '1px', background: 'var(--border)' }}>
               <span className="absolute bg-white px-2.5 text-[10px] font-bold tracking-[.08em]" style={{ color: 'var(--muted)' }}>解説</span>
             </div>
-            <div className="rounded-[10px] px-3.5 py-3 text-[12px] leading-relaxed"
-              style={{ background: 'var(--accent-soft)', border: '1px solid rgba(46,158,91,0.2)', color: 'var(--text)', whiteSpace: 'pre-wrap' }}>
-              {q.explanation}
+            <div className="flex flex-col gap-1.5">
+              {q.explanation.map((item, i) => (
+                <div key={i} className="rounded-[10px] px-3.5 py-3"
+                  style={{ background: 'var(--accent-soft)', border: '1px solid rgba(46,158,91,0.2)' }}>
+                  <div className="text-[11px] font-bold mb-0.5" style={{ color: 'var(--accent)' }}>{item.title}</div>
+                  <div className="text-[12px] leading-relaxed" style={{ color: 'var(--text)' }}>{item.body}</div>
+                </div>
+              ))}
             </div>
           </>
         )}

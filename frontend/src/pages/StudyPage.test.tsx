@@ -22,6 +22,15 @@ const mockQuestion1 = {
   explanation: null,
 }
 
+const mockQuestionWithExplanation = {
+  ...mockQuestion1,
+  explanation: [
+    { title: '役割', body: 'CPUは演算・制御を担当する。' },
+    { title: '構成', body: 'ALUと制御装置から成る。' },
+    { title: '特徴', body: 'クロック周波数が高いほど速い。' },
+  ],
+}
+
 const mockQuestion2 = {
   ...mockQuestion1,
   id: 'fe-2',
@@ -132,5 +141,38 @@ describe('StudyPage', () => {
 
     await user.click(screen.getByRole('button', { name: /前へ/ }))
     expect(screen.getByText('1問目の問題文')).toBeInTheDocument()
+  })
+
+  it('explanation が配列の場合、各カードのタイトルと本文を表示する', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([mockQuestionWithExplanation]),
+    } as Response))
+
+    renderStudyPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('1問目の問題文')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('役割')).toBeInTheDocument()
+    expect(screen.getByText('CPUは演算・制御を担当する。')).toBeInTheDocument()
+    expect(screen.getByText('構成')).toBeInTheDocument()
+    expect(screen.getByText('特徴')).toBeInTheDocument()
+  })
+
+  it('explanation が null の場合、解説セクションを表示しない', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([mockQuestion1]),
+    } as Response))
+
+    renderStudyPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('1問目の問題文')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByText('解説')).not.toBeInTheDocument()
   })
 })
