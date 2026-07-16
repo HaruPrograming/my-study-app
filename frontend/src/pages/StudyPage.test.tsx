@@ -189,4 +189,56 @@ describe('StudyPage', () => {
 
     expect(screen.queryByText('解説')).not.toBeInTheDocument()
   })
+
+  it('「AI質問」タブが表示される', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([mockQuestion1]),
+    } as Response))
+
+    renderStudyPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('1問目の問題文')).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('tab', { name: 'AI質問' })).toBeInTheDocument()
+  })
+
+  it('「AI質問」タブをクリックするとチャット入力欄が表示される', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([mockQuestion1]),
+    } as Response))
+
+    const user = userEvent.setup()
+    renderStudyPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('1問目の問題文')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('tab', { name: 'AI質問' }))
+
+    expect(screen.getByPlaceholderText(/質問を入力/)).toBeInTheDocument()
+  })
+
+  it('「ポイント・解説」タブをクリックするとポイントが表示される', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([mockQuestion1]),
+    } as Response))
+
+    const user = userEvent.setup()
+    renderStudyPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('1問目の問題文')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('tab', { name: 'AI質問' }))
+    await user.click(screen.getByRole('tab', { name: 'ポイント・解説' }))
+
+    expect(screen.getByText('ポイント1')).toBeInTheDocument()
+  })
 })

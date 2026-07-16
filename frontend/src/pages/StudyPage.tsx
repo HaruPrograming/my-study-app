@@ -3,8 +3,11 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ChartIcon, PauseIcon, CheckIcon, TargetIcon, BoltIcon, BulbIcon } from '../components/icons'
 import { ProgressBar } from '../components/common/ProgressBar'
 import { IllustBlock } from '../components/study/IllustBlock'
+import { AiChatPanel } from '../components/study/AiChatPanel'
 import { useStudyContext } from '../context/StudyContext'
 import type { Question, Point } from '../types'
+
+type StudyTab = 'point' | 'ai'
 
 function PointIcon({ icon }: { icon: Point['icon'] }) {
   switch (icon) {
@@ -22,6 +25,7 @@ export function StudyPage() {
   const [currentIndex, setCurrentIndex] = useState(Number(searchParams.get('startIndex') ?? 0))
   const [examQuestions, setExamQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(true)
+  const [studyTab, setStudyTab] = useState<StudyTab>('point')
 
   useEffect(() => {
     fetch(`/api/questions/${examId}/${examLabel}`)
@@ -129,51 +133,78 @@ export function StudyPage() {
           ))}
         </div>
 
-        {/* Divider */}
-        <div className="relative flex items-center justify-center mb-[18px]" style={{ height: '1px', background: 'var(--border)' }}>
-          <span className="absolute bg-white px-2.5 text-[10px] font-bold tracking-[.08em]" style={{ color: 'var(--muted)' }}>POINT</span>
+        {/* Tab switcher */}
+        <div className="flex gap-1 mb-4 p-1 rounded-[10px]" style={{ background: 'var(--surface)' }}>
+          <button
+            role="tab"
+            aria-selected={studyTab === 'point'}
+            onClick={() => setStudyTab('point')}
+            className="flex-1 h-8 rounded-[8px] text-[12px] font-bold"
+            style={studyTab === 'point'
+              ? { background: 'var(--accent)', color: '#fff', border: 'none' }
+              : { background: 'transparent', color: 'var(--muted)', border: 'none' }}
+          >
+            ポイント・解説
+          </button>
+          <button
+            role="tab"
+            aria-selected={studyTab === 'ai'}
+            onClick={() => setStudyTab('ai')}
+            className="flex-1 h-8 rounded-[8px] text-[12px] font-bold"
+            style={studyTab === 'ai'
+              ? { background: 'var(--accent)', color: '#fff', border: 'none' }
+              : { background: 'transparent', color: 'var(--muted)', border: 'none' }}
+          >
+            AI質問
+          </button>
         </div>
 
-        {/* Illustration */}
-        {q.illustration && (
-          <IllustBlock
-            nodes={q.illustration.nodes}
-            subNodes={q.illustration.subNodes}
-            caption={q.illustration.caption}
-          />
-        )}
-
-        {/* Points */}
-        <div className="flex flex-col gap-1.5">
-          {q.points.map((pt, i) => (
-            <div key={i} className="flex items-start gap-2 rounded-[10px] px-3 py-2.5"
-              style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-              <div className="w-[22px] h-[22px] rounded-[6px] flex-shrink-0 flex items-center justify-center"
-                style={{ background: 'var(--orange-soft)' }}>
-                <PointIcon icon={pt.icon} />
-              </div>
-              <div className="text-[12px] leading-relaxed" style={{ color: 'var(--text)' }}
-                dangerouslySetInnerHTML={{ __html: pt.text.replace(/<b>/g, '<strong style="color:var(--orange);font-weight:700">').replace(/<\/b>/g, '</strong>') }} />
-            </div>
-          ))}
-        </div>
-
-        {/* Explanation */}
-        {q.explanation && q.explanation.length > 0 && (
+        {studyTab === 'point' ? (
           <>
-            <div className="relative flex items-center justify-center mt-[18px] mb-[14px]" style={{ height: '1px', background: 'var(--border)' }}>
-              <span className="absolute bg-white px-2.5 text-[10px] font-bold tracking-[.08em]" style={{ color: 'var(--muted)' }}>解説</span>
-            </div>
+            {/* Illustration */}
+            {q.illustration && (
+              <IllustBlock
+                nodes={q.illustration.nodes}
+                subNodes={q.illustration.subNodes}
+                caption={q.illustration.caption}
+              />
+            )}
+
+            {/* Points */}
             <div className="flex flex-col gap-1.5">
-              {q.explanation.map((item, i) => (
-                <div key={i} className="rounded-[10px] px-3.5 py-3"
-                  style={{ background: 'var(--accent-soft)', border: '1px solid rgba(46,158,91,0.2)' }}>
-                  <div className="text-[11px] font-bold mb-0.5" style={{ color: 'var(--accent)' }}>{item.title}</div>
-                  <div className="text-[12px] leading-relaxed" style={{ color: 'var(--text)' }}>{item.body}</div>
+              {q.points.map((pt, i) => (
+                <div key={i} className="flex items-start gap-2 rounded-[10px] px-3 py-2.5"
+                  style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                  <div className="w-[22px] h-[22px] rounded-[6px] flex-shrink-0 flex items-center justify-center"
+                    style={{ background: 'var(--orange-soft)' }}>
+                    <PointIcon icon={pt.icon} />
+                  </div>
+                  <div className="text-[12px] leading-relaxed" style={{ color: 'var(--text)' }}
+                    dangerouslySetInnerHTML={{ __html: pt.text.replace(/<b>/g, '<strong style="color:var(--orange);font-weight:700">').replace(/<\/b>/g, '</strong>') }} />
                 </div>
               ))}
             </div>
+
+            {/* Explanation */}
+            {q.explanation && q.explanation.length > 0 && (
+              <>
+                <div className="relative flex items-center justify-center mt-[18px] mb-[14px]" style={{ height: '1px', background: 'var(--border)' }}>
+                  <span className="absolute bg-white px-2.5 text-[10px] font-bold tracking-[.08em]" style={{ color: 'var(--muted)' }}>解説</span>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {q.explanation.map((item, i) => (
+                    <div key={i} className="rounded-[10px] px-3.5 py-3"
+                      style={{ background: 'var(--accent-soft)', border: '1px solid rgba(46,158,91,0.2)' }}>
+                      <div className="text-[11px] font-bold mb-0.5" style={{ color: 'var(--accent)' }}>{item.title}</div>
+                      <div className="text-[12px] leading-relaxed" style={{ color: 'var(--text)' }}>{item.body}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </>
+        ) : (
+          <AiChatPanel key={q.id} question={q} />
         )}
       </div>
 
