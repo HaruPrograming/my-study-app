@@ -15,6 +15,7 @@ class Question extends Model
     protected $casts = [
         'illustration' => 'array',
         'points'       => 'array',
+        'explanation'  => 'array',
     ];
 
     public function choices(): HasMany
