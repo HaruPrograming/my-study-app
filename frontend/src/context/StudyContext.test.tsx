@@ -22,6 +22,11 @@ function ProgressDisplay() {
   )
 }
 
+function ProcessingDisplay() {
+  const { processingUploads } = useStudyContext()
+  return <div data-testid="processing-count">{processingUploads.length}</div>
+}
+
 describe('StudyContext - progress persistence', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -63,5 +68,43 @@ describe('StudyContext - progress persistence', () => {
       method: 'POST',
       body: JSON.stringify({ exam_id: 'fe', exam_label: '2024年 春期' }),
     }))
+  })
+})
+
+describe('StudyContext - processingUploads 復元', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+  })
+
+  it('マウント時に /api/pdfs/processing を取得して processingUploads に追加する', async () => {
+    const mockProcessingList = [
+      { id: 10, exam_id: 'fe', exam_label: '2024年 春期' },
+      { id: 11, exam_id: 'ap', exam_label: '2024年 秋期' },
+    ]
+
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/pdfs/processing') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(mockProcessingList) })
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+    }))
+
+    render(<StudyProvider><ProcessingDisplay /></StudyProvider>)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('processing-count').textContent).toBe('2')
+    })
+  })
+
+  it('処理中がない場合は processingUploads が空のまま', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+    ))
+
+    render(<StudyProvider><ProcessingDisplay /></StudyProvider>)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('processing-count').textContent).toBe('0')
+    })
   })
 })
