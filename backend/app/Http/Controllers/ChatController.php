@@ -22,33 +22,45 @@ class ChatController extends Controller
             'history.*.text' => ['sometimes', 'string'],
         ]);
 
-        $reply = $this->askClaude(
+        ['point' => $point, 'explanation' => $explanation] = $this->askClaude(
             $data['message'],
             $data['context'],
             $data['history'] ?? [],
         );
 
-        return response()->json(['reply' => $reply]);
+        return response()->json(['point' => $point, 'explanation' => $explanation]);
     }
 
-    private function askClaude(string $message, array $context, array $history = []): string
+    /** @return array{point: string, explanation: string} */
+    private function askClaude(string $message, array $context, array $history = []): array
     {
+        $fallback = ['point' => '', 'explanation' => 'AI の応答に失敗しました。しばらく後でお試しください。'];
+
         $apiKey = config('services.anthropic.key');
         if (!$apiKey) {
-            return 'AI サービスが設定されていません。';
+            return ['point' => '', 'explanation' => 'AI サービスが設定されていません。'];
         }
 
         $contextText = $this->buildContextText($context);
 
         $systemPrompt = <<<SYSTEM
 あなたはIT資格試験の学習サポート AI です。
-学習者が問題を解いた後に疑問点を質問してきます。以下の問題内容のみを対象に、分かりやすく丁寧に回答してください。
+学習者が問題を解いた後の疑問に答えます。以下の問題内容のみを対象に回答してください。
 
-【回答ルール】
-- マークダウン記法（**太字**、# 見出し、- リスト記号など）は使わず、自然な会話体で回答する
-- 箇条書きにする場合は「・」を使う
-- 200字程度に収める
-- 日本語で回答する
+【回答フォーマット】
+必ず以下の JSON のみを返してください（説明・コードブロック不要）：
+{"point":"ポイントの内容","explanation":"解説の内容"}
+
+【point の書き方】
+- 重要な概念や覚え方を「・」で箇条書き
+- 絵文字や矢印（→）を使って視覚的にわかりやすく表現する
+例: 🔵 CPU → 🔄 演算処理 → 📤 結果出力
+- 100字以内
+
+【explanation の書き方】
+- 問題の核心を自然な会話体で説明
+- マークダウン記法（**、#、- など）は使わない
+- 150字以内
 
 【問題内容】
 {$contextText}
@@ -56,8 +68,11 @@ SYSTEM;
 
         $messages = [];
         foreach ($history as $msg) {
-            $role = ($msg['role'] === 'ai') ? 'assistant' : 'user';
-            $messages[] = ['role' => $role, 'content' => $msg['text']];
+            $role    = ($msg['role'] === 'ai') ? 'assistant' : 'user';
+            $content = isset($msg['point'])
+                ? json_encode(['point' => $msg['point'], 'explanation' => $msg['explanation'] ?? ''], JSON_UNESCAPED_UNICODE)
+                : ($msg['text'] ?? '');
+            $messages[] = ['role' => $role, 'content' => $content];
         }
         $messages[] = ['role' => 'user', 'content' => $message];
 
@@ -74,20 +89,36 @@ SYSTEM;
             ]);
 
             if (!$response->successful()) {
-                return 'AI の応答に失敗しました。しばらく後でお試しください。';
+                return $fallback;
             }
 
-            $content = $response->json('content', []);
-            foreach ($content as $block) {
+            $text = '';
+            foreach ($response->json('content', []) as $block) {
                 if (($block['type'] ?? '') === 'text') {
-                    return $block['text'];
+                    $text .= $block['text'];
                 }
             }
 
-            return 'AI から応答を取得できませんでした。';
+            return $this->parseStructuredResponse($text) ?? $fallback;
         } catch (\Throwable) {
-            return 'AI の応答に失敗しました。しばらく後でお試しください。';
+            return $fallback;
         }
+    }
+
+    /** @return array{point: string, explanation: string}|null */
+    private function parseStructuredResponse(string $text): ?array
+    {
+        if (preg_match('/```(?:json)?\s*([\s\S]+?)\s*```/', $text, $m)) {
+            $text = $m[1];
+        }
+        try {
+            $data = json_decode(trim($text), true, 512, JSON_THROW_ON_ERROR);
+            if (isset($data['point'], $data['explanation'])) {
+                return ['point' => (string) $data['point'], 'explanation' => (string) $data['explanation']];
+            }
+        } catch (\JsonException) {
+        }
+        return null;
     }
 
     private function buildContextText(array $context): string

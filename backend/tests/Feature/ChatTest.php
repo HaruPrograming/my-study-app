@@ -10,16 +10,17 @@ class ChatTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function anthropicOkResponse(string $text = 'AIの返答です'): array
+    private function anthropicOkResponse(string $point = 'ポイント', string $explanation = '解説です'): array
     {
+        $json = json_encode(['point' => $point, 'explanation' => $explanation], JSON_UNESCAPED_UNICODE);
         return [
             'content' => [
-                ['type' => 'text', 'text' => $text],
+                ['type' => 'text', 'text' => $json],
             ],
         ];
     }
 
-    public function test_メッセージとコンテキストを送ると200とreplyが返る(): void
+    public function test_メッセージとコンテキストを送ると200とpoint_explanationが返る(): void
     {
         Http::fake([
             'https://api.anthropic.com/*' => Http::response($this->anthropicOkResponse(), 200),
@@ -35,13 +36,16 @@ class ChatTest extends TestCase
             ],
         ]);
 
-        $res->assertOk()->assertJsonStructure(['reply']);
+        $res->assertOk()->assertJsonStructure(['point', 'explanation']);
     }
 
-    public function test_replyが文字列で返る(): void
+    public function test_pointとexplanationが文字列で返る(): void
     {
         Http::fake([
-            'https://api.anthropic.com/*' => Http::response($this->anthropicOkResponse('詳しく説明します'), 200),
+            'https://api.anthropic.com/*' => Http::response(
+                $this->anthropicOkResponse('🔵 CPU → 🔄 演算', 'CPUは演算・制御を担当します'),
+                200,
+            ),
         ]);
 
         $res = $this->postJson('/api/chat', [
@@ -55,8 +59,8 @@ class ChatTest extends TestCase
         ]);
 
         $res->assertOk();
-        $this->assertIsString($res->json('reply'));
-        $this->assertSame('詳しく説明します', $res->json('reply'));
+        $this->assertSame('🔵 CPU → 🔄 演算', $res->json('point'));
+        $this->assertSame('CPUは演算・制御を担当します', $res->json('explanation'));
     }
 
     public function test_messageが必須(): void
