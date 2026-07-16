@@ -26,24 +26,32 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   const [exams, setExams] = useState<Exam[]>(initialExams)
   const [processingUploads, setProcessingUploads] = useState<ProcessingUpload[]>([])
 
-  // マウント時に DB から完了済み年度一覧を取得
+  // マウント時に DB から完了済み年度一覧と進捗を取得
   useEffect(() => {
-    fetch('/api/pdfs', { credentials: 'include' })
-      .then(r => r.json())
-      .then((uploads: Array<{ id: number; exam_id: string; exam_label: string; question_count: number; created_at: string }>) => {
+    Promise.all([
+      fetch('/api/pdfs', { credentials: 'include' }).then(r => r.json()),
+      fetch('/api/progress').then(r => r.json()).catch(() => [] as Array<{ exam_id: string; exam_label: string; completed_count: number }>),
+    ])
+      .then(([uploads, progressList]: [
+        Array<{ id: number; exam_id: string; exam_label: string; question_count: number; created_at: string }>,
+        Array<{ exam_id: string; exam_label: string; completed_count: number }>,
+      ]) => {
         const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
         setExams(prev => prev.map(exam => ({
           ...exam,
           years: uploads
             .filter(u => u.exam_id === exam.id)
-            .map(u => ({
-              id: `upload-${u.id}`,
-              label: u.exam_label,
-              season: u.exam_label.includes('春') ? 'spring' : 'autumn' as 'spring' | 'autumn',
-              isNew: new Date(u.created_at).getTime() > sevenDaysAgo,
-              completedCount: 0,
-              totalCount: u.question_count ?? 0,
-            })),
+            .map(u => {
+              const prog = progressList.find(p => p.exam_id === exam.id && p.exam_label === u.exam_label)
+              return {
+                id: `upload-${u.id}`,
+                label: u.exam_label,
+                season: u.exam_label.includes('春') ? 'spring' : 'autumn' as 'spring' | 'autumn',
+                isNew: new Date(u.created_at).getTime() > sevenDaysAgo,
+                completedCount: prog?.completed_count ?? 0,
+                totalCount: u.question_count ?? 0,
+              }
+            }),
         })))
       })
       .catch(() => {})
@@ -118,6 +126,11 @@ export function StudyProvider({ children }: { children: ReactNode }) {
         ),
       }
     ))
+    fetch('/api/progress', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ exam_id: examId, exam_label: examLabel }),
+    }).catch(() => {})
   }
 
   const addStudyDay = (date: string) => {
