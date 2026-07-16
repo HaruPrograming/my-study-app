@@ -42,8 +42,8 @@ function ExamCard({ exam, selected, onClick }: { exam: Exam; selected: boolean; 
   )
 }
 
-function YearCard({ year, selected, onSelect, onStart }: {
-  year: YearEntry; selected: boolean; onSelect: () => void; onStart: () => void
+function YearCard({ year, selected, onSelect, onStart, onResume }: {
+  year: YearEntry; selected: boolean; onSelect: () => void; onStart: () => void; onResume: () => void
 }) {
   const pct = year.totalCount > 0 ? Math.round(year.completedCount / year.totalCount * 100) : 0
 
@@ -75,11 +75,20 @@ function YearCard({ year, selected, onSelect, onStart }: {
         </div>
       </div>
       {selected && (
-        <button onClick={e => { e.stopPropagation(); onStart() }}
-          className="w-full h-[42px] rounded-[9px] text-[13px] font-bold text-white mt-2.5"
-          style={{ background: 'var(--accent)', boxShadow: '0 2px 8px var(--accent-glow)' }}>
-          {year.label} を{pct > 0 ? '続ける' : 'スタート'} →
-        </button>
+        <div className="flex gap-2 mt-2.5">
+          {year.completedCount > 0 && (
+            <button onClick={e => { e.stopPropagation(); onStart() }}
+              className="flex-1 h-[42px] rounded-[9px] text-[13px] font-bold"
+              style={{ background: 'var(--surface)', border: '1.5px solid var(--accent)', color: 'var(--accent)' }}>
+              最初から →
+            </button>
+          )}
+          <button onClick={e => { e.stopPropagation(); year.completedCount > 0 ? onResume() : onStart() }}
+            className="flex-[2] h-[42px] rounded-[9px] text-[13px] font-bold text-white"
+            style={{ background: 'var(--accent)', boxShadow: '0 2px 8px var(--accent-glow)' }}>
+            {year.completedCount > 0 ? '続きから →' : '最初から →'}
+          </button>
+        </div>
       )}
     </div>
   )
@@ -126,7 +135,8 @@ export function TopPage() {
             <YearCard key={year.id} year={year}
               selected={selectedYearId === year.id}
               onSelect={() => setSelectedYearId(prev => prev === year.id ? null : year.id)}
-              onStart={() => navigate(`/study/${selectedExamId}/${encodeURIComponent(year.label)}`)} />
+              onStart={() => navigate(`/study/${selectedExamId}/${encodeURIComponent(year.label)}`)}
+              onResume={() => navigate(`/study/${selectedExamId}/${encodeURIComponent(year.label)}?startIndex=${year.completedCount}`)} />
           ))}
           <button onClick={() => setModalOpen(true)}
             className="flex items-center justify-center gap-1.5 w-full rounded-[12px] py-2.5 text-[12px] font-bold mt-1.5 cursor-pointer"

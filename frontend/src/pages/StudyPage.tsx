@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ChartIcon, PauseIcon, CheckIcon, TargetIcon, BoltIcon, BulbIcon } from '../components/icons'
 import { ProgressBar } from '../components/common/ProgressBar'
 import { IllustBlock } from '../components/study/IllustBlock'
@@ -17,8 +17,9 @@ function PointIcon({ icon }: { icon: Point['icon'] }) {
 export function StudyPage() {
   const { examId, examLabel } = useParams<{ examId: string; examLabel: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { completeQuestion } = useStudyContext()
-  const [currentIndex, setCurrentIndex] = useState(0)
+  const [currentIndex, setCurrentIndex] = useState(Number(searchParams.get('startIndex') ?? 0))
   const [examQuestions, setExamQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -49,7 +50,7 @@ export function StudyPage() {
   const pct = Math.round(q.number / q.totalCount * 100)
 
   const handleNext = () => {
-    completeQuestion(examId ?? '')
+    completeQuestion(examId ?? '', examLabel ?? '')
     if (currentIndex < examQuestions.length - 1) {
       setCurrentIndex(i => i + 1)
     } else {

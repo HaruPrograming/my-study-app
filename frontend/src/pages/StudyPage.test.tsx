@@ -38,9 +38,9 @@ const mockQuestion2 = {
   body: '2問目の問題文',
 }
 
-function renderStudyPage(examId = 'fe', examLabel = '202305') {
+function renderStudyPage(examId = 'fe', examLabel = '202305', query = '') {
   return render(
-    <MemoryRouter initialEntries={[`/study/${examId}/${examLabel}`]}>
+    <MemoryRouter initialEntries={[`/study/${examId}/${examLabel}${query}`]}>
       <StudyProvider>
         <Routes>
           <Route path="/study/:examId/:examLabel" element={<StudyPage />} />
@@ -159,6 +159,20 @@ describe('StudyPage', () => {
     expect(screen.getByText('CPUは演算・制御を担当する。')).toBeInTheDocument()
     expect(screen.getByText('構成')).toBeInTheDocument()
     expect(screen.getByText('特徴')).toBeInTheDocument()
+  })
+
+  it('startIndex クエリパラメータが指定された場合、その問題から開始する', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([mockQuestion1, mockQuestion2]),
+    } as Response))
+
+    renderStudyPage('fe', '202305', '?startIndex=1')
+
+    await waitFor(() => {
+      expect(screen.getByText('2問目の問題文')).toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: /前へ/ })).toBeInTheDocument()
   })
 
   it('explanation が null の場合、解説セクションを表示しない', async () => {

@@ -11,7 +11,7 @@ type StudyContextValue = {
   studyDays: Set<string>
   exams: Exam[]
   processingUploads: ProcessingUpload[]
-  completeQuestion: (examId: string) => void
+  completeQuestion: (examId: string, examLabel: string) => void
   addStudyDay: (date: string) => void
   addYearEntry: (examId: string, entry: YearEntry) => void
   startProcessing: (upload: ProcessingUpload) => void
@@ -108,8 +108,16 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     { examId: 'ap', name: '応用情報技術者', color: 'orange', done: 0,   total: 340 },
   ]
 
-  const completeQuestion = (_examId: string) => {
+  const completeQuestion = (examId: string, examLabel: string) => {
     setCompletedQuestions(n => n + 1)
+    setExams(prev => prev.map(exam =>
+      exam.id !== examId ? exam : {
+        ...exam,
+        years: exam.years.map(year =>
+          year.label !== examLabel ? year : { ...year, completedCount: year.completedCount + 1 }
+        ),
+      }
+    ))
   }
 
   const addStudyDay = (date: string) => {
