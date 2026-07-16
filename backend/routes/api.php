@@ -13,6 +13,7 @@ Route::post('/progress', [ProgressController::class, 'store']);
 Route::post('/ai-generate', [AiGenerateController::class, 'generate']);
 
 Route::get('/pdfs', [PdfController::class, 'listDone']);
+Route::get('/pdfs/processing', [PdfController::class, 'listProcessing']);
 Route::post('/pdfs/upload', [PdfController::class, 'upload']);
 Route::get('/pdfs/{id}/status', [PdfController::class, 'status']);
 Route::post('/questions/generate', [QuestionController::class, 'generate']);
