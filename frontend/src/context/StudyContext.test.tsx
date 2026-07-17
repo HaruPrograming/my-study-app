@@ -193,3 +193,71 @@ describe('StudyContext - study-days 復元', () => {
     })
   })
 })
+
+function ExamProgressDisplay() {
+  const { examProgresses } = useStudyContext()
+  const fe = examProgresses.find(e => e.examId === 'fe')
+  const ap = examProgresses.find(e => e.examId === 'ap')
+  return (
+    <>
+      <div data-testid="fe-done">{fe?.done ?? -1}</div>
+      <div data-testid="fe-total">{fe?.total ?? -1}</div>
+      <div data-testid="ap-done">{ap?.done ?? -1}</div>
+      <div data-testid="ap-total">{ap?.total ?? -1}</div>
+    </>
+  )
+}
+
+describe('StudyContext - examProgresses 実値化', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+  })
+
+  it('uploads と progressList から試験別 done・total を計算する', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/pdfs') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([
+            { id: 1, exam_id: 'fe', exam_label: '2024年 春期', question_count: 20, created_at: '2026-01-01T00:00:00.000Z' },
+            { id: 2, exam_id: 'fe', exam_label: '2024年 秋期', question_count: 15, created_at: '2026-01-01T00:00:00.000Z' },
+            { id: 3, exam_id: 'ap', exam_label: '2024年 春期', question_count: 10, created_at: '2026-01-01T00:00:00.000Z' },
+          ]),
+        })
+      }
+      if (url === '/api/progress') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([
+            { exam_id: 'fe', exam_label: '2024年 春期', completed_count: 8 },
+            { exam_id: 'fe', exam_label: '2024年 秋期', completed_count: 3 },
+            { exam_id: 'ap', exam_label: '2024年 春期', completed_count: 2 },
+          ]),
+        })
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+    }))
+
+    render(<StudyProvider><ExamProgressDisplay /></StudyProvider>)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('fe-done').textContent).toBe('11')   // 8+3
+      expect(screen.getByTestId('fe-total').textContent).toBe('35')  // 20+15
+      expect(screen.getByTestId('ap-done').textContent).toBe('2')
+      expect(screen.getByTestId('ap-total').textContent).toBe('10')
+    })
+  })
+
+  it('データがない試験は done=0, total=0 になる', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+    ))
+
+    render(<StudyProvider><ExamProgressDisplay /></StudyProvider>)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('fe-done').textContent).toBe('0')
+      expect(screen.getByTestId('fe-total').textContent).toBe('0')
+    })
+  })
+})
