@@ -17,6 +17,15 @@ class AiGenerateController extends Controller
             'exam_id' => ['required', 'string'],
         ]);
 
+        $duplicate = PdfUpload::where('exam_id', $data['exam_id'])
+            ->where('exam_label', $data['title'])
+            ->whereIn('status', ['done', 'pending', 'processing'])
+            ->exists();
+
+        if ($duplicate) {
+            return response()->json(['message' => 'この年度はすでに登録済みです'], 409);
+        }
+
         $upload = PdfUpload::create([
             'exam_id'           => $data['exam_id'],
             'exam_label'        => $data['title'],

@@ -92,6 +92,24 @@ describe('AddYearModal - PDFタブ', () => {
 
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
   })
+
+  it('PDF アップロードで 409 のとき「このPDFはすでに登録済みです」が表示される', async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ message: 'このPDFはすでに登録済みです' }),
+    } as Response)
+
+    render(<AddYearModal examId="fe" onClose={vi.fn()} />)
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, { target: { files: [makePdf('q.pdf')] } })
+    fireEvent.change(screen.getByPlaceholderText('例：2024年 春期'), { target: { value: '2024年春' } })
+    fireEvent.click(screen.getByText('保存して読み込む'))
+
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('このPDFはすでに登録済みです')
+    )
+  })
 })
 
 describe('AddYearModal - AI生成タブ', () => {
@@ -155,5 +173,25 @@ describe('AddYearModal - AI生成タブ', () => {
       )
       expect(onClose).toHaveBeenCalled()
     })
+  })
+
+  it('AI 生成で 409 のとき「この年度はすでに登録済みです」が表示される', async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ message: 'この年度はすでに登録済みです' }),
+    } as Response)
+
+    render(<AddYearModal examId="fe" onClose={vi.fn()} />)
+    fireEvent.click(screen.getByRole('tab', { name: 'AI 生成' }))
+    fireEvent.change(screen.getByPlaceholderText('例：2024年 春期'), { target: { value: '2024年春' } })
+    fireEvent.change(screen.getByPlaceholderText(/生成してください/), {
+      target: { value: '問題を生成してください' },
+    })
+    fireEvent.click(screen.getByText('AI で問題を生成'))
+
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('この年度はすでに登録済みです')
+    )
   })
 })
