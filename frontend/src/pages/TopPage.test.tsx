@@ -13,6 +13,7 @@ vi.mock('react-router-dom', async () => {
 const mockExams = [
   {
     id: 'fe',
+    dbId: 1,
     name: '基本情報技術者',
     shortName: 'FE',
     color: 'green' as const,
@@ -32,6 +33,14 @@ const mockExams = [
         season: 'autumn' as const,
         isNew: false,
         completedCount: 0,
+        totalCount: 10,
+      },
+      {
+        id: 'upload-3',
+        label: '2021年度春期',
+        season: 'spring' as const,
+        isNew: false,
+        completedCount: 10,
         totalCount: 10,
       },
     ],
@@ -113,6 +122,41 @@ describe('TopPage - 続きから始めるボタン', () => {
 
     await user.click(screen.getByText('2023年度春期'))
     await user.click(screen.getByRole('button', { name: /最初から/ }))
+
+    const calledArg: string = mockNavigate.mock.calls[0][0]
+    expect(calledArg).not.toContain('startIndex')
+  })
+})
+
+describe('TopPage - 100%完了後の遷移', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('completedCount === totalCount のとき「もう一度」ボタンが表示される', async () => {
+    const user = userEvent.setup()
+    renderTopPage()
+
+    await user.click(screen.getByText('2021年度春期'))
+
+    expect(screen.getByRole('button', { name: /もう一度/ })).toBeInTheDocument()
+  })
+
+  it('completedCount === totalCount のとき「続きから」ボタンが表示されない', async () => {
+    const user = userEvent.setup()
+    renderTopPage()
+
+    await user.click(screen.getByText('2021年度春期'))
+
+    expect(screen.queryByRole('button', { name: /続きから/ })).not.toBeInTheDocument()
+  })
+
+  it('100%完了後に「もう一度」をクリックすると startIndex なしで遷移する', async () => {
+    const user = userEvent.setup()
+    renderTopPage()
+
+    await user.click(screen.getByText('2021年度春期'))
+    await user.click(screen.getByRole('button', { name: /もう一度/ }))
 
     const calledArg: string = mockNavigate.mock.calls[0][0]
     expect(calledArg).not.toContain('startIndex')
