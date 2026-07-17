@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BottomNav } from '../components/layout/BottomNav'
 import { StatCard } from '../components/common/StatCard'
 import { MonitorIcon, AppliedInfoIcon, FireIcon } from '../components/icons'
@@ -32,13 +33,21 @@ function ExamProgressCard({ examId, name, color, done, total }: { examId: string
 }
 
 export function RecordPage() {
-  const { streakDays, completedQuestions, overallProgress, examProgresses, studyDays } = useStudyContext()
+  const { streakDays, completedQuestions, overallProgress, examProgresses, studyDays, studyHistory } = useStudyContext()
   const year = now.getFullYear()
   const month = now.getMonth() + 1
   const { blanks, days, toKey } = useCalendar(year, month)
   const today = toKey(now.getDate())
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
   const weekDays = ['日','月','火','水','木','金','土']
+
+  const handleDayClick = (key: string, studied: boolean) => {
+    if (!studied) return
+    setSelectedDate(prev => prev === key ? null : key)
+  }
+
+  const selectedHistory = studyHistory.find(h => h.date === selectedDate)
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--bg)' }}>
@@ -75,19 +84,42 @@ export function RecordPage() {
               const key = toKey(day)
               const done = studyDays.has(key)
               const isToday = key === today
+              const isSelected = key === selectedDate
               return (
-                <div key={day}
+                <div
+                  key={day}
+                  data-studied={done ? 'true' : undefined}
+                  onClick={() => handleDayClick(key, done)}
                   className="aspect-square rounded-[6px] flex items-center justify-center text-[9px] font-semibold"
-                  style={isToday
-                    ? { background: 'var(--accent)', color: '#fff', boxShadow: '0 0 0 2px #fff,0 0 0 3px var(--accent)' }
-                    : done
-                    ? { background: 'var(--accent)', color: '#fff' }
-                    : { color: 'var(--muted)' }}>
+                  style={
+                    isSelected
+                      ? { background: 'var(--accent)', color: '#fff', boxShadow: '0 0 0 2px #fff,0 0 0 4px var(--accent)', cursor: 'pointer' }
+                      : isToday
+                      ? { background: 'var(--accent)', color: '#fff', boxShadow: '0 0 0 2px #fff,0 0 0 3px var(--accent)', cursor: done ? 'pointer' : 'default' }
+                      : done
+                      ? { background: 'var(--accent)', color: '#fff', cursor: 'pointer' }
+                      : { color: 'var(--muted)' }
+                  }>
                   {day}
                 </div>
               )
             })}
           </div>
+
+          {/* 日別詳細 */}
+          {selectedHistory && (
+            <div data-testid="day-detail" className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+              <div className="text-[10px] font-bold mb-1.5" style={{ color: 'var(--muted)' }}>
+                {selectedDate} の学習
+              </div>
+              {selectedHistory.exams.map((e, i) => (
+                <div key={i} className="flex items-center justify-between text-[11px] py-0.5" style={{ color: 'var(--text)' }}>
+                  <span>{e.exam_label}</span>
+                  <span className="font-bold" style={{ color: 'var(--accent)' }}>{e.count}問</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

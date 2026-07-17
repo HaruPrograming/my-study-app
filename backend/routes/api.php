@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/progress', [ProgressController::class, 'index']);
 Route::post('/progress', [ProgressController::class, 'store']);
 Route::get('/study-days', [StudyDayController::class, 'index']);
+Route::get('/study-days/history', [StudyDayController::class, 'history']);
 
 Route::post('/ai-generate', [AiGenerateController::class, 'generate']);
 Route::post('/chat', [ChatController::class, 'chat']);
