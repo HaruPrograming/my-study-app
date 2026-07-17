@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\StudyDay;
+use App\Models\UserDailyProgress;
 use Illuminate\Http\JsonResponse;
 
 class StudyDayController extends Controller
@@ -40,5 +41,23 @@ class StudyDayController extends Controller
             'streak_days'     => $streakDays,
             'last_study_date' => $lastStudyDate,
         ]);
+    }
+
+    public function history(): JsonResponse
+    {
+        $rows = UserDailyProgress::orderBy('date', 'desc')->get();
+
+        $grouped = $rows->groupBy('date')->map(function ($items, $date) {
+            return [
+                'date'  => $date,
+                'exams' => $items->map(fn ($r) => [
+                    'exam_id'    => $r->exam_id,
+                    'exam_label' => $r->exam_label,
+                    'count'      => $r->count,
+                ])->values()->all(),
+            ];
+        })->values();
+
+        return response()->json($grouped->all());
     }
 }

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\StudyDay;
+use App\Models\UserDailyProgress;
 use App\Models\UserProgress;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -28,7 +30,36 @@ class ProgressController extends Controller
         $progress->completed_count = ($progress->completed_count ?? 0) + 1;
         $progress->save();
 
-        StudyDay::firstOrCreate(['date' => now()->toDateString()]);
+        $today = now()->toDateString();
+
+        try {
+            StudyDay::firstOrCreate(['date' => $today]);
+        } catch (UniqueConstraintViolationException) {
+            // 同日レコードが既存のため無視
+        }
+
+        $affected = \DB::table('user_daily_progress')
+            ->where('date', $today)
+            ->where('exam_id', $data['exam_id'])
+            ->where('exam_label', $data['exam_label'])
+            ->increment('count');
+
+        if (!$affected) {
+            try {
+                UserDailyProgress::create([
+                    'date'       => $today,
+                    'exam_id'    => $data['exam_id'],
+                    'exam_label' => $data['exam_label'],
+                    'count'      => 1,
+                ]);
+            } catch (UniqueConstraintViolationException) {
+                \DB::table('user_daily_progress')
+                    ->where('date', $today)
+                    ->where('exam_id', $data['exam_id'])
+                    ->where('exam_label', $data['exam_label'])
+                    ->increment('count');
+            }
+        }
 
         return response()->json($progress, 201);
     }
