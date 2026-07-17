@@ -45,6 +45,24 @@ const mockExams = [
       },
     ],
   },
+  {
+    id: 'ip',
+    dbId: 2,
+    name: 'ITパスポート',
+    shortName: 'IP',
+    color: 'blue' as const,
+    isLocked: false,
+    years: [
+      {
+        id: 'upload-ip-1',
+        label: '2024年度春期',
+        season: 'spring' as const,
+        isNew: false,
+        completedCount: 5,
+        totalCount: 10,
+      },
+    ],
+  },
 ]
 
 const mockRefreshData = vi.fn()
@@ -67,6 +85,14 @@ vi.mock('../context/StudyContext', () => ({
 function renderTopPage() {
   return render(
     <MemoryRouter>
+      <TopPage />
+    </MemoryRouter>
+  )
+}
+
+function renderTopPageWithState(state: Record<string, unknown>) {
+  return render(
+    <MemoryRouter initialEntries={[{ pathname: '/', state }]}>
       <TopPage />
     </MemoryRouter>
   )
@@ -125,6 +151,22 @@ describe('TopPage - 続きから始めるボタン', () => {
 
     const calledArg: string = mockNavigate.mock.calls[0][0]
     expect(calledArg).not.toContain('startIndex')
+  })
+})
+
+describe('TopPage - 中断後の資格選択', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('location.state に examId がない場合は最初の資格（fe）が選択される', () => {
+    renderTopPage()
+    expect(screen.getByText('2023年度春期')).toBeInTheDocument()
+  })
+
+  it('location.state.examId が渡された場合はその資格が選択される', () => {
+    renderTopPageWithState({ examId: 'ip' })
+    expect(screen.getByText('2024年度春期')).toBeInTheDocument()
   })
 })
 
