@@ -40,6 +40,11 @@ describe('StudyContext - progress persistence', () => {
       if (url === '/api/progress') {
         return Promise.resolve({ ok: true, json: () => Promise.resolve(mockProgress) })
       }
+      if (url === '/api/exams') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([
+          { id: 1, name: '基本情報技術者', short_name: 'fe', color: 'green' },
+        ]) })
+      }
       return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
     }))
 
@@ -208,6 +213,51 @@ function ExamProgressDisplay() {
   )
 }
 
+describe('StudyContext - exams API取得', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+  })
+
+  function ExamList() {
+    const { exams } = useStudyContext()
+    return <div data-testid="exam-names">{exams.map(e => e.name).join(',')}</div>
+  }
+
+  it('マウント時に /api/exams を取得して試験一覧を反映する', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/exams') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([
+            { id: 1, name: '基本情報技術者', short_name: 'fe', color: 'green' },
+            { id: 2, name: '応用情報技術者', short_name: 'ap', color: 'orange' },
+          ]),
+        })
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+    }))
+
+    render(<StudyProvider><ExamList /></StudyProvider>)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('exam-names').textContent).toContain('基本情報技術者')
+      expect(screen.getByTestId('exam-names').textContent).toContain('応用情報技術者')
+    })
+  })
+
+  it('/api/exams が空の場合は exams が空になる', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+    ))
+
+    render(<StudyProvider><ExamList /></StudyProvider>)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('exam-names').textContent).toBe('')
+    })
+  })
+})
+
 describe('StudyContext - examProgresses 実値化', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -232,6 +282,15 @@ describe('StudyContext - examProgresses 実値化', () => {
             { exam_id: 'fe', exam_label: '2024年 春期', completed_count: 8 },
             { exam_id: 'fe', exam_label: '2024年 秋期', completed_count: 3 },
             { exam_id: 'ap', exam_label: '2024年 春期', completed_count: 2 },
+          ]),
+        })
+      }
+      if (url === '/api/exams') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([
+            { id: 1, name: '基本情報技術者', short_name: 'fe', color: 'green' },
+            { id: 2, name: '応用情報技術者', short_name: 'ap', color: 'orange' },
           ]),
         })
       }

@@ -1,31 +1,63 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BottomNav } from '../components/layout/BottomNav'
 import { StatCard } from '../components/common/StatCard'
 import { AddYearModal } from '../components/top/AddYearModal'
+import { AddExamModal } from '../components/top/AddExamModal'
+import { DeleteExamModal } from '../components/top/DeleteExamModal'
 import { ProcessingIndicator } from '../components/common/ProcessingIndicator'
-import { MonitorIcon, AppliedInfoIcon, LockIcon, SeasonSpringIcon, SeasonAutumnIcon, FireIcon } from '../components/icons'
+import { MonitorIcon, AppliedInfoIcon, LockIcon, BookIcon, SeasonSpringIcon, SeasonAutumnIcon, FireIcon } from '../components/icons'
 import { useStudyContext } from '../context/StudyContext'
-import type { Exam, YearEntry } from '../types'
+import type { Exam, ExamColor, YearEntry } from '../types'
 
-function ExamCard({ exam, selected, onClick }: { exam: Exam; selected: boolean; onClick: () => void }) {
+const EXAM_COLOR_MAP: Record<ExamColor, { gradient: string; glow: string }> = {
+  green:  { gradient: 'linear-gradient(135deg,#2E9E5B,#1A6E3C)', glow: 'rgba(46,158,91,0.35)' },
+  orange: { gradient: 'linear-gradient(135deg,#F57C2B,#C05810)', glow: 'rgba(245,124,43,0.3)' },
+  blue:   { gradient: 'linear-gradient(135deg,#3B82F6,#1D4ED8)', glow: 'rgba(59,130,246,0.3)' },
+  purple: { gradient: 'linear-gradient(135deg,#8B5CF6,#6D28D9)', glow: 'rgba(139,92,246,0.3)' },
+  red:    { gradient: 'linear-gradient(135deg,#EF4444,#B91C1C)',  glow: 'rgba(239,68,68,0.3)' },
+}
+
+function ExamCardIcon({ color }: { color: ExamColor | 'locked' }) {
+  if (color === 'locked') return <LockIcon size={30} color="#9BB0A0" />
+  if (color === 'green')  return <MonitorIcon size={30} color="rgba(255,255,255,0.9)" />
+  if (color === 'orange') return <AppliedInfoIcon size={30} color="rgba(255,255,255,0.9)" />
+  return <BookIcon size={30} color="rgba(255,255,255,0.9)" />
+}
+
+function ExamCard({ exam, selected, onClick, onLongPress }: { exam: Exam; selected: boolean; onClick: () => void; onLongPress: () => void }) {
   const pct = exam.years.length > 0
     ? Math.round(exam.years.reduce((s, y) => s + y.completedCount, 0) / exam.years.reduce((s, y) => s + y.totalCount, 0) * 100)
     : 0
 
+  const colorKey = exam.color !== 'locked' ? exam.color : 'green'
+  const { gradient, glow } = EXAM_COLOR_MAP[colorKey]
+
   const cardStyle = exam.isLocked
     ? { background: 'var(--surface)', border: '1.5px solid var(--border)' }
-    : exam.color === 'green'
-    ? { background: 'linear-gradient(135deg,#2E9E5B,#1A6E3C)', boxShadow: selected ? '0 0 0 3px rgba(255,255,255,0.6),0 4px 18px var(--accent-glow)' : '0 4px 14px var(--accent-glow)' }
-    : { background: 'linear-gradient(135deg,#F57C2B,#C05810)', boxShadow: selected ? '0 0 0 3px rgba(255,255,255,0.6),0 4px 18px rgba(245,124,43,0.3)' : '0 4px 14px rgba(245,124,43,0.22)' }
+    : { background: gradient, boxShadow: selected ? `0 0 0 3px rgba(255,255,255,0.6),0 4px 18px ${glow}` : `0 4px 14px ${glow}` }
+
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handlePressStart = () => {
+    longPressTimer.current = setTimeout(() => { onLongPress() }, 600)
+  }
+  const handlePressEnd = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current)
+  }
 
   return (
-    <div onClick={onClick} className="flex-1 rounded-[13px] p-3 cursor-pointer transition-transform active:scale-[0.97]"
+    <div
+      onClick={onClick}
+      onMouseDown={handlePressStart}
+      onMouseUp={handlePressEnd}
+      onMouseLeave={handlePressEnd}
+      onTouchStart={handlePressStart}
+      onTouchEnd={handlePressEnd}
+      className="flex-1 rounded-[13px] p-3 cursor-pointer transition-transform active:scale-[0.97]"
       style={{ ...cardStyle, transform: selected && !exam.isLocked ? 'scale(1.03)' : undefined }}>
       <div className="mb-1.5">
-        {exam.isLocked ? <LockIcon size={30} color="#9BB0A0" />
-          : exam.color === 'green' ? <MonitorIcon size={30} color="rgba(255,255,255,0.9)" />
-          : <AppliedInfoIcon size={30} color="rgba(255,255,255,0.9)" />}
+        <ExamCardIcon color={exam.color} />
       </div>
       <div className="text-[12px] font-extrabold mb-0.5" style={{ color: exam.isLocked ? 'var(--muted)' : '#fff' }}>
         {exam.shortName}
@@ -97,11 +129,15 @@ function YearCard({ year, selected, onSelect, onStart, onResume }: {
 export function TopPage() {
   const navigate = useNavigate()
   const { streakDays, completedQuestions, overallProgress, exams } = useStudyContext()
-  const [selectedExamId, setSelectedExamId] = useState('fe')
+  const [selectedExamId, setSelectedExamId] = useState<string | null>(null)
   const [selectedYearId, setSelectedYearId] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [addExamModalOpen, setAddExamModalOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null)
 
-  const selectedExam = exams.find(e => e.id === selectedExamId) ?? exams[0]
+  const activeExamId = selectedExamId ?? exams[0]?.id ?? 'fe'
+
+  const selectedExam = exams.find(e => e.id === activeExamId) ?? exams[0]
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--bg)' }}>
@@ -122,16 +158,28 @@ export function TopPage() {
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-[18px] pt-[18px] pb-[110px]">
         <div className="text-[10px] font-extrabold tracking-[.08em] mb-2" style={{ color: 'var(--muted)' }}>資格を選ぶ</div>
-        <div className="flex gap-2 mb-[22px]">
+        <div className="flex gap-2 mb-[22px] overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', marginLeft: '-18px', marginRight: '-18px', paddingLeft: '18px', paddingRight: '18px' }}>
           {exams.map(exam => (
-            <ExamCard key={exam.id} exam={exam} selected={selectedExamId === exam.id}
-              onClick={() => { if (!exam.isLocked) { setSelectedExamId(exam.id); setSelectedYearId(null) } }} />
+            <div key={exam.id} className="flex-shrink-0" style={{ width: 'calc(33vw - 16px)', minWidth: '90px', maxWidth: '130px' }}>
+              <ExamCard exam={exam} selected={activeExamId === exam.id}
+                onClick={() => { if (!exam.isLocked) { setSelectedExamId(exam.id); setSelectedYearId(null) } }}
+                onLongPress={() => { if (!exam.isLocked) setDeleteTarget({ id: exam.dbId, name: exam.name }) }} />
+            </div>
           ))}
+          <div className="flex-shrink-0" style={{ width: 'calc(33vw - 16px)', minWidth: '90px', maxWidth: '130px' }}>
+            <button
+              onClick={() => setAddExamModalOpen(true)}
+              className="w-full h-full rounded-[13px] p-3 flex flex-col items-center justify-center gap-1 cursor-pointer"
+              style={{ background: 'var(--surface)', border: '1.5px dashed var(--border)', minHeight: '90px' }}>
+              <span className="text-[18px]" style={{ color: 'var(--muted)' }}>＋</span>
+              <span className="text-[9px] font-bold" style={{ color: 'var(--muted)' }}>資格を追加</span>
+            </button>
+          </div>
         </div>
 
         <div className="text-[10px] font-extrabold tracking-[.08em] mb-2" style={{ color: 'var(--muted)' }}>年度・期を選ぶ</div>
         <div className="flex flex-col gap-1.5">
-          {selectedExam.years.map(year => (
+          {(selectedExam?.years ?? []).map(year => (
             <YearCard key={year.id} year={year}
               selected={selectedYearId === year.id}
               onSelect={() => setSelectedYearId(prev => prev === year.id ? null : year.id)}
@@ -148,7 +196,9 @@ export function TopPage() {
 
       <BottomNav />
       <ProcessingIndicator />
-      {modalOpen && <AddYearModal examId={selectedExamId} onClose={() => setModalOpen(false)} />}
+      {modalOpen && <AddYearModal examId={activeExamId} onClose={() => setModalOpen(false)} />}
+      {addExamModalOpen && <AddExamModal onClose={() => setAddExamModalOpen(false)} />}
+      {deleteTarget && <DeleteExamModal examId={deleteTarget.id} examName={deleteTarget.name} onClose={() => setDeleteTarget(null)} />}
     </div>
   )
 }

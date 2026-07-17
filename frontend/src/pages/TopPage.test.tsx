@@ -38,6 +38,8 @@ const mockExams = [
   },
 ]
 
+const mockRefreshData = vi.fn()
+
 vi.mock('../context/StudyContext', () => ({
   useStudyContext: () => ({
     streakDays: 5,
@@ -49,6 +51,7 @@ vi.mock('../context/StudyContext', () => ({
     addStudyDay: vi.fn(),
     addYearEntry: vi.fn(),
     startProcessing: vi.fn(),
+    refreshData: mockRefreshData,
   }),
 }))
 
@@ -113,5 +116,51 @@ describe('TopPage - 続きから始めるボタン', () => {
 
     const calledArg: string = mockNavigate.mock.calls[0][0]
     expect(calledArg).not.toContain('startIndex')
+  })
+})
+
+describe('TopPage - 資格を追加', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ id: 3, name: 'ITパスポート', short_name: 'ip', color: 'green' }),
+    }))
+  })
+
+  it('「＋ 資格を追加」ボタンが表示される', () => {
+    renderTopPage()
+    expect(screen.getByText(/資格を追加/)).toBeInTheDocument()
+  })
+
+  it('「＋ 資格を追加」ボタンをクリックするとモーダルが表示される', async () => {
+    const user = userEvent.setup()
+    renderTopPage()
+
+    await user.click(screen.getByText(/資格を追加/))
+
+    expect(screen.getByLabelText('試験名')).toBeInTheDocument()
+  })
+
+  it('モーダルでフォームを入力して送信すると POST /api/exams が呼ばれる', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ id: 3, name: 'ITパスポート', short_name: 'ip', color: 'green' }),
+    })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const user = userEvent.setup()
+    renderTopPage()
+
+    await user.click(screen.getByText(/資格を追加/))
+    await user.type(screen.getByLabelText('試験名'), 'ITパスポート')
+    await user.click(screen.getByRole('button', { name: '追加' }))
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith('/api/exams', expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('ITパスポート'),
+      }))
+    })
   })
 })
