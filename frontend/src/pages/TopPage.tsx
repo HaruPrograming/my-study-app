@@ -115,10 +115,10 @@ function YearCard({ year, selected, onSelect, onStart, onResume }: {
               最初から →
             </button>
           )}
-          <button onClick={e => { e.stopPropagation(); year.completedCount > 0 ? onResume() : onStart() }}
+          <button onClick={e => { e.stopPropagation(); (year.completedCount > 0 && year.completedCount < year.totalCount) ? onResume() : onStart() }}
             className="flex-[2] h-[42px] rounded-[9px] text-[13px] font-bold text-white"
             style={{ background: 'var(--accent)', boxShadow: '0 2px 8px var(--accent-glow)' }}>
-            {year.completedCount > 0 ? '続きから →' : '最初から →'}
+            {year.completedCount >= year.totalCount && year.totalCount > 0 ? 'もう一度 →' : year.completedCount > 0 ? '続きから →' : '最初から →'}
           </button>
         </div>
       )}
@@ -183,8 +183,15 @@ export function TopPage() {
             <YearCard key={year.id} year={year}
               selected={selectedYearId === year.id}
               onSelect={() => setSelectedYearId(prev => prev === year.id ? null : year.id)}
-              onStart={() => navigate(`/study/${selectedExamId}/${encodeURIComponent(year.label)}`)}
-              onResume={() => navigate(`/study/${selectedExamId}/${encodeURIComponent(year.label)}?startIndex=${year.completedCount}`)} />
+              onStart={() => {
+                  localStorage.removeItem(`study_resume_${activeExamId}_${year.label}`)
+                  navigate(`/study/${activeExamId}/${encodeURIComponent(year.label)}`)
+                }}
+              onResume={() => {
+                  const saved = localStorage.getItem(`study_resume_${activeExamId}_${year.label}`)
+                  const idx = saved !== null ? saved : year.completedCount
+                  navigate(`/study/${activeExamId}/${encodeURIComponent(year.label)}?startIndex=${idx}`)
+                }} />
           ))}
           <button onClick={() => setModalOpen(true)}
             className="flex items-center justify-center gap-1.5 w-full rounded-[12px] py-2.5 text-[12px] font-bold mt-1.5 cursor-pointer"
