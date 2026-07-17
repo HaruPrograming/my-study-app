@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { BottomNav } from '../components/layout/BottomNav'
 import { StatCard } from '../components/common/StatCard'
 import { AddYearModal } from '../components/top/AddYearModal'
@@ -128,8 +128,10 @@ function YearCard({ year, selected, onSelect, onStart, onResume }: {
 
 export function TopPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { streakDays, completedQuestions, overallProgress, exams } = useStudyContext()
-  const [selectedExamId, setSelectedExamId] = useState<string | null>(null)
+  const locationState = location.state as { examId?: string } | null
+  const [selectedExamId, setSelectedExamId] = useState<string | null>(locationState?.examId ?? null)
   const [selectedYearId, setSelectedYearId] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [addExamModalOpen, setAddExamModalOpen] = useState(false)
