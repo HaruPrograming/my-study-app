@@ -53,11 +53,14 @@ export function StudyPage() {
 
   const pct = Math.round(q.number / q.totalCount * 100)
 
+  const resumeKey = `study_resume_${examId}_${examLabel}`
+
   const handleNext = () => {
     completeQuestion(examId ?? '', examLabel ?? '')
     if (currentIndex < examQuestions.length - 1) {
       setCurrentIndex(i => i + 1)
     } else {
+      localStorage.removeItem(resumeKey)
       navigate(`/study/${examId}/${examLabel}/complete`)
     }
   }
@@ -66,12 +69,17 @@ export function StudyPage() {
     setCurrentIndex(i => i - 1)
   }
 
+  const handleInterrupt = () => {
+    localStorage.setItem(resumeKey, String(currentIndex))
+    navigate('/')
+  }
+
   return (
     <div className="flex flex-col h-dvh" style={{ background: 'var(--bg)' }}>
       {/* Header */}
       <div className="flex items-center px-[18px] py-2 flex-shrink-0"
         style={{ borderBottom: '1px solid var(--border)' }}>
-        <button onClick={() => navigate('/')}
+        <button onClick={handleInterrupt}
           className="h-8 px-2.5 rounded-[9px] flex items-center justify-center flex-shrink-0 gap-1 text-[11px] font-bold"
           style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--muted)' }}>
           <PauseIcon size={12} color="var(--muted)" /> 中断
