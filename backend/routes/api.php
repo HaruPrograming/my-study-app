@@ -6,10 +6,12 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\ProgressController;
 use App\Http\Controllers\QuestionController;
+use App\Http\Controllers\StudyDayController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/progress', [ProgressController::class, 'index']);
 Route::post('/progress', [ProgressController::class, 'store']);
+Route::get('/study-days', [StudyDayController::class, 'index']);
 
 Route::post('/ai-generate', [AiGenerateController::class, 'generate']);
 Route::post('/chat', [ChatController::class, 'chat']);
