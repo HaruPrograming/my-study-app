@@ -71,7 +71,7 @@ export function StudyPage() {
 
   const handleInterrupt = () => {
     localStorage.setItem(resumeKey, String(currentIndex))
-    navigate('/')
+    navigate('/', { state: { examId } })
   }
 
   return (
