@@ -19,6 +19,16 @@ class PdfController extends Controller
             'exam_id'      => ['required', 'string'],
         ]);
 
+        $fileHash = hash_file('sha256', $request->file('question_pdf')->getRealPath());
+
+        $duplicate = PdfUpload::where('file_hash', $fileHash)
+            ->whereIn('status', ['done', 'pending', 'processing'])
+            ->exists();
+
+        if ($duplicate) {
+            return response()->json(['message' => 'このPDFはすでに登録済みです'], 409);
+        }
+
         $questionPath = $request->file('question_pdf')->store('pdfs', 'private');
         $answerPath   = $request->hasFile('answer_pdf')
             ? $request->file('answer_pdf')->store('pdfs', 'private')
@@ -29,6 +39,7 @@ class PdfController extends Controller
             'exam_label'         => $request->input('title'),
             'question_pdf_path'  => $questionPath,
             'answer_pdf_path'    => $answerPath,
+            'file_hash'          => $fileHash,
             'status'             => 'pending',
         ]);
 

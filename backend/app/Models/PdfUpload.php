@@ -11,6 +11,7 @@ class PdfUpload extends Model
         'exam_label',
         'question_pdf_path',
         'answer_pdf_path',
+        'file_hash',
         'status',
         'question_count',
         'error_message',
