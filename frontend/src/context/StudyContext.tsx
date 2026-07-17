@@ -20,23 +20,25 @@ type StudyContextValue = {
 const StudyContext = createContext<StudyContextValue | null>(null)
 
 export function StudyProvider({ children }: { children: ReactNode }) {
-  const [streakDays] = useState(7)
-  const [completedQuestions, setCompletedQuestions] = useState(142)
-  const [overallProgress] = useState(42)
+  const [streakDays, setStreakDays] = useState(0)
+  const [completedQuestions, setCompletedQuestions] = useState(0)
+  const [overallProgress, setOverallProgress] = useState(0)
   const [exams, setExams] = useState<Exam[]>(initialExams)
   const [processingUploads, setProcessingUploads] = useState<ProcessingUpload[]>([])
 
-  // マウント時に DB から完了済み年度一覧・進捗・処理中アップロードを取得
+  // マウント時に DB から完了済み年度一覧・進捗・処理中アップロード・学習日を取得
   useEffect(() => {
     Promise.all([
       fetch('/api/pdfs', { credentials: 'include' }).then(r => r.json()),
       fetch('/api/progress').then(r => r.json()).catch(() => [] as Array<{ exam_id: string; exam_label: string; completed_count: number }>),
       fetch('/api/pdfs/processing', { credentials: 'include' }).then(r => r.json()).catch(() => [] as Array<{ id: number; exam_id: string; exam_label: string }>),
+      fetch('/api/study-days').then(r => r.json()).catch(() => ({ dates: [] as string[], streak_days: 0, last_study_date: null })),
     ])
-      .then(([uploads, progressList, processingList]: [
+      .then(([uploads, progressList, processingList, studyData]: [
         Array<{ id: number; exam_id: string; exam_label: string; question_count: number; created_at: string }>,
         Array<{ exam_id: string; exam_label: string; completed_count: number }>,
         Array<{ id: number; exam_id: string; exam_label: string }>,
+        { dates: string[]; streak_days: number; last_study_date: string | null },
       ]) => {
         const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
         setExams(prev => prev.map(exam => ({
@@ -63,6 +65,15 @@ export function StudyProvider({ children }: { children: ReactNode }) {
             examLabel: u.exam_label,
           })))
         }
+
+        setStreakDays(studyData?.streak_days ?? 0)
+        setStudyDays(new Set(studyData?.dates ?? []))
+
+        const totalCompleted = progressList.reduce((s, p) => s + p.completed_count, 0)
+        setCompletedQuestions(totalCompleted)
+
+        const totalQuestions = uploads.reduce((s, u) => s + (u.question_count ?? 0), 0)
+        setOverallProgress(totalQuestions > 0 ? Math.round(totalCompleted / totalQuestions * 100) : 0)
       })
       .catch(() => {})
   }, [])
@@ -117,9 +128,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval)
   }, [processingUploads])
 
-  const [studyDays, setStudyDays] = useState<Set<string>>(
-    new Set(['2026-07-01','2026-07-03','2026-07-04','2026-07-06','2026-07-07','2026-07-08','2026-07-10','2026-07-11'])
-  )
+  const [studyDays, setStudyDays] = useState<Set<string>>(new Set())
 
   const examProgresses: ExamProgress[] = [
     { examId: 'fe', name: '基本情報技術者', color: 'green',  done: 142, total: 340 },

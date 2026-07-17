@@ -108,3 +108,88 @@ describe('StudyContext - processingUploads 復元', () => {
     })
   })
 })
+
+function StreakDisplay() {
+  const { streakDays, studyDays, overallProgress } = useStudyContext()
+  return (
+    <>
+      <div data-testid="streak">{streakDays}</div>
+      <div data-testid="study-days-count">{studyDays.size}</div>
+      <div data-testid="overall-progress">{overallProgress}</div>
+    </>
+  )
+}
+
+describe('StudyContext - study-days 復元', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+  })
+
+  it('マウント時に /api/study-days から streakDays を取得する', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/study-days') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ dates: ['2026-07-16', '2026-07-17'], streak_days: 2, last_study_date: '2026-07-17' }),
+        })
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+    }))
+
+    render(<StudyProvider><StreakDisplay /></StudyProvider>)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('streak').textContent).toBe('2')
+    })
+  })
+
+  it('マウント時に /api/study-days から studyDays Set を復元する', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/study-days') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ dates: ['2026-07-15', '2026-07-16', '2026-07-17'], streak_days: 3, last_study_date: '2026-07-17' }),
+        })
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+    }))
+
+    render(<StudyProvider><StreakDisplay /></StudyProvider>)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('study-days-count').textContent).toBe('3')
+    })
+  })
+
+  it('overallProgress が uploads と progressList から正しく計算される', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/pdfs') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([
+            { id: 1, exam_id: 'fe', exam_label: '2024年 春期', question_count: 10, created_at: '2026-01-01T00:00:00.000Z' },
+          ]),
+        })
+      }
+      if (url === '/api/progress') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([{ exam_id: 'fe', exam_label: '2024年 春期', completed_count: 5 }]),
+        })
+      }
+      if (url === '/api/study-days') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ dates: [], streak_days: 0, last_study_date: null }),
+        })
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+    }))
+
+    render(<StudyProvider><StreakDisplay /></StudyProvider>)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('overall-progress').textContent).toBe('50')
+    })
+  })
+})
