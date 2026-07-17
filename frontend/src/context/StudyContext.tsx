@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import type { ExamProgress, YearEntry, ProcessingUpload } from '../types'
-import { exams as initialExams } from '../data/exams'
-import type { Exam } from '../types'
+import type { Exam, ExamProgress, YearEntry, ProcessingUpload } from '../types'
+
+type ApiExam = { id: number; name: string; short_name: string; color: string }
 
 export type DailyHistoryEntry = {
   exam_id: string
@@ -37,7 +37,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   const [completedQuestions, setCompletedQuestions] = useState(0)
   const [overallProgress, setOverallProgress] = useState(0)
   const [studyHistory, setStudyHistory] = useState<StudyHistoryItem[]>([])
-  const [exams, setExams] = useState<Exam[]>(initialExams)
+  const [exams, setExams] = useState<Exam[]>([])
   const [processingUploads, setProcessingUploads] = useState<ProcessingUpload[]>([])
 
   const refreshData = () => {
@@ -47,21 +47,30 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       fetch('/api/pdfs/processing', { credentials: 'include' }).then(r => r.json()).catch(() => [] as Array<{ id: number; exam_id: string; exam_label: string }>),
       fetch('/api/study-days').then(r => r.json()).catch(() => ({ dates: [] as string[], streak_days: 0, last_study_date: null })),
       fetch('/api/study-days/history').then(r => r.json()).catch(() => [] as StudyHistoryItem[]),
+      fetch('/api/exams').then(r => r.json()).catch(() => [] as ApiExam[]),
     ])
-      .then(([uploads, progressList, processingList, studyData, historyData]: [
+      .then(([uploads, progressList, processingList, studyData, historyData, examList]: [
         Array<{ id: number; exam_id: string; exam_label: string; question_count: number; created_at: string }>,
         Array<{ exam_id: string; exam_label: string; completed_count: number }>,
         Array<{ id: number; exam_id: string; exam_label: string }>,
         { dates: string[]; streak_days: number; last_study_date: string | null },
         StudyHistoryItem[],
+        ApiExam[],
       ]) => {
         const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
-        setExams(prev => prev.map(exam => ({
-          ...exam,
+        const apiExams: ApiExam[] = Array.isArray(examList) ? examList : []
+
+        setExams(apiExams.map(e => ({
+          id: e.short_name,
+          dbId: e.id,
+          name: e.name,
+          shortName: e.name,
+          color: (e.color as 'green' | 'orange' | 'locked') ?? 'green',
+          isLocked: false,
           years: uploads
-            .filter(u => u.exam_id === exam.id)
+            .filter(u => u.exam_id === e.short_name)
             .map(u => {
-              const prog = progressList.find(p => p.exam_id === exam.id && p.exam_label === u.exam_label)
+              const prog = progressList.find(p => p.exam_id === e.short_name && p.exam_label === u.exam_label)
               return {
                 id: `upload-${u.id}`,
                 label: u.exam_label,
@@ -81,11 +90,13 @@ export function StudyProvider({ children }: { children: ReactNode }) {
           })))
         }
 
-        setExamProgresses(prev => prev.map(ep => {
-          const total = uploads.filter(u => u.exam_id === ep.examId).reduce((s, u) => s + (u.question_count ?? 0), 0)
-          const done  = progressList.filter(p => p.exam_id === ep.examId).reduce((s, p) => s + p.completed_count, 0)
-          return { ...ep, done, total }
-        }))
+        setExamProgresses(apiExams.map(e => ({
+          examId: e.short_name,
+          name: e.name,
+          color: (e.color as 'green' | 'orange') ?? 'green',
+          done:  progressList.filter(p => p.exam_id === e.short_name).reduce((s, p) => s + p.completed_count, 0),
+          total: uploads.filter(u => u.exam_id === e.short_name).reduce((s, u) => s + (u.question_count ?? 0), 0),
+        })))
 
         setStreakDays(studyData?.streak_days ?? 0)
         setStudyDays(new Set(studyData?.dates ?? []))

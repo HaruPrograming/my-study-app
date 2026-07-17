@@ -42,11 +42,14 @@ export type YearEntry = {
   totalCount: number
 }
 
+export type ExamColor = 'green' | 'orange' | 'blue' | 'purple' | 'red'
+
 export type Exam = {
   id: string
+  dbId: number
   name: string
   shortName: string
-  color: 'green' | 'orange' | 'locked'
+  color: ExamColor | 'locked'
   isLocked: boolean
   years: YearEntry[]
 }
@@ -54,7 +57,7 @@ export type Exam = {
 export type ExamProgress = {
   examId: string
   name: string
-  color: 'green' | 'orange'
+  color: ExamColor
   done: number
   total: number
 }

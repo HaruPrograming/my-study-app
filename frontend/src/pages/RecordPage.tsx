@@ -1,20 +1,30 @@
 import { useState, useEffect } from 'react'
 import { BottomNav } from '../components/layout/BottomNav'
 import { StatCard } from '../components/common/StatCard'
-import { MonitorIcon, AppliedInfoIcon, FireIcon } from '../components/icons'
+import { MonitorIcon, AppliedInfoIcon, BookIcon, FireIcon } from '../components/icons'
 import { useStudyContext } from '../context/StudyContext'
 import { useCalendar } from '../hooks/useCalendar'
+import type { ExamColor } from '../types'
 
 const now = new Date()
 
-function ExamProgressCard({ examId, name, color, done, total }: { examId: string; name: string; color: 'green' | 'orange'; done: number; total: number }) {
+const PROGRESS_COLOR_MAP: Record<ExamColor, { accent: string; soft: string }> = {
+  green:  { accent: 'var(--accent)',  soft: 'var(--accent-soft)' },
+  orange: { accent: 'var(--orange)',  soft: 'var(--orange-soft)' },
+  blue:   { accent: '#3B82F6', soft: 'rgba(59,130,246,0.12)' },
+  purple: { accent: '#8B5CF6', soft: 'rgba(139,92,246,0.12)' },
+  red:    { accent: '#EF4444', soft: 'rgba(239,68,68,0.12)' },
+}
+
+function ExamProgressCard({ examId, name, color, done, total }: { examId: string; name: string; color: ExamColor; done: number; total: number }) {
   const pct = total > 0 ? Math.round(done / total * 100) : 0
-  const accent = color === 'green' ? 'var(--accent)' : 'var(--orange)'
-  const soft = color === 'green' ? 'var(--accent-soft)' : 'var(--orange-soft)'
+  const { accent, soft } = PROGRESS_COLOR_MAP[color] ?? PROGRESS_COLOR_MAP.green
   return (
     <div className="flex items-center gap-2.5 rounded-[12px] px-3.5 py-3 mb-2" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
       <div className="w-[34px] h-[34px] rounded-[9px] flex items-center justify-center flex-shrink-0" style={{ background: soft }}>
-        {examId === 'fe' ? <MonitorIcon size={20} color={accent} /> : <AppliedInfoIcon size={20} color={accent} />}
+        {examId === 'fe' ? <MonitorIcon size={20} color={accent} />
+          : examId === 'ap' ? <AppliedInfoIcon size={20} color={accent} />
+          : <BookIcon size={20} color={accent} />}
       </div>
       <div className="flex-1">
         <div className="text-[12px] font-bold mb-0.5" style={{ color: 'var(--text)' }}>{name}</div>
