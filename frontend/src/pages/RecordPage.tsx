@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { BottomNav } from '../components/layout/BottomNav'
 import { StatCard } from '../components/common/StatCard'
 import { MonitorIcon, AppliedInfoIcon, FireIcon } from '../components/icons'
@@ -33,7 +33,11 @@ function ExamProgressCard({ examId, name, color, done, total }: { examId: string
 }
 
 export function RecordPage() {
-  const { streakDays, completedQuestions, overallProgress, examProgresses, studyDays, studyHistory } = useStudyContext()
+  const { streakDays, completedQuestions, overallProgress, examProgresses, studyDays, studyHistory, refreshData } = useStudyContext()
+
+  useEffect(() => {
+    refreshData()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const year = now.getFullYear()
   const month = now.getMonth() + 1
   const { blanks, days, toKey } = useCalendar(year, month)

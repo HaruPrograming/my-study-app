@@ -27,6 +27,7 @@ type StudyContextValue = {
   addStudyDay: (date: string) => void
   addYearEntry: (examId: string, entry: YearEntry) => void
   startProcessing: (upload: ProcessingUpload) => void
+  refreshData: () => void
 }
 
 const StudyContext = createContext<StudyContextValue | null>(null)
@@ -39,8 +40,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   const [exams, setExams] = useState<Exam[]>(initialExams)
   const [processingUploads, setProcessingUploads] = useState<ProcessingUpload[]>([])
 
-  // マウント時に DB から完了済み年度一覧・進捗・処理中アップロード・学習日を取得
-  useEffect(() => {
+  const refreshData = () => {
     Promise.all([
       fetch('/api/pdfs', { credentials: 'include' }).then(r => r.json()),
       fetch('/api/progress').then(r => r.json()).catch(() => [] as Array<{ exam_id: string; exam_label: string; completed_count: number }>),
@@ -81,6 +81,12 @@ export function StudyProvider({ children }: { children: ReactNode }) {
           })))
         }
 
+        setExamProgresses(prev => prev.map(ep => {
+          const total = uploads.filter(u => u.exam_id === ep.examId).reduce((s, u) => s + (u.question_count ?? 0), 0)
+          const done  = progressList.filter(p => p.exam_id === ep.examId).reduce((s, p) => s + p.completed_count, 0)
+          return { ...ep, done, total }
+        }))
+
         setStreakDays(studyData?.streak_days ?? 0)
         setStudyDays(new Set(studyData?.dates ?? []))
         setStudyHistory(Array.isArray(historyData) ? historyData : [])
@@ -92,7 +98,12 @@ export function StudyProvider({ children }: { children: ReactNode }) {
         setOverallProgress(totalQuestions > 0 ? Math.round(totalCompleted / totalQuestions * 100) : 0)
       })
       .catch(() => {})
-  }, [])
+  }
+
+  // マウント時にデータを取得
+  useEffect(() => {
+    refreshData()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // バックグラウンド処理中のアップロードをポーリング
   useEffect(() => {
@@ -145,11 +156,10 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   }, [processingUploads])
 
   const [studyDays, setStudyDays] = useState<Set<string>>(new Set())
-
-  const examProgresses: ExamProgress[] = [
-    { examId: 'fe', name: '基本情報技術者', color: 'green',  done: 142, total: 340 },
-    { examId: 'ap', name: '応用情報技術者', color: 'orange', done: 0,   total: 340 },
-  ]
+  const [examProgresses, setExamProgresses] = useState<ExamProgress[]>([
+    { examId: 'fe', name: '基本情報技術者', color: 'green',  done: 0, total: 0 },
+    { examId: 'ap', name: '応用情報技術者', color: 'orange', done: 0, total: 0 },
+  ])
 
   const completeQuestion = (examId: string, examLabel: string) => {
     setCompletedQuestions(n => n + 1)
@@ -186,7 +196,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     <StudyContext.Provider value={{
       streakDays, completedQuestions, overallProgress,
       examProgresses, studyDays, studyHistory, exams, processingUploads,
-      completeQuestion, addStudyDay, addYearEntry, startProcessing,
+      completeQuestion, addStudyDay, addYearEntry, startProcessing, refreshData,
     }}>
       {children}
     </StudyContext.Provider>
