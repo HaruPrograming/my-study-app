@@ -40,7 +40,7 @@ const mockQuestion2 = {
 
 function renderStudyPage(examId = 'fe', examLabel = '202305', query = '') {
   return render(
-    <MemoryRouter initialEntries={[`/study/${examId}/${examLabel}${query}`]}>
+    <MemoryRouter initialEntries={[`/study/${examId}/${examLabel}${query}`]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <StudyProvider>
         <Routes>
           <Route path="/study/:examId/:examLabel" element={<StudyPage />} />
