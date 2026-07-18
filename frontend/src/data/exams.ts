@@ -3,6 +3,7 @@ import type { Exam } from '../types'
 export const exams: Exam[] = [
   {
     id: 'fe',
+    dbId: 0,
     name: '基本情報技術者',
     shortName: '基本情報',
     color: 'green',
@@ -11,6 +12,7 @@ export const exams: Exam[] = [
   },
   {
     id: 'ap',
+    dbId: 0,
     name: '応用情報技術者',
     shortName: '応用情報',
     color: 'orange',
@@ -19,6 +21,7 @@ export const exams: Exam[] = [
   },
   {
     id: 'ip',
+    dbId: 0,
     name: 'ITパスポート',
     shortName: 'ITパスポート',
     color: 'locked',
