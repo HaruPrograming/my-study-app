@@ -85,7 +85,7 @@ vi.mock('../context/StudyContext', () => ({
 
 function renderTopPage() {
   return render(
-    <MemoryRouter>
+    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <TopPage />
     </MemoryRouter>
   )
@@ -93,7 +93,7 @@ function renderTopPage() {
 
 function renderTopPageWithState(state: Record<string, unknown>) {
   return render(
-    <MemoryRouter initialEntries={[{ pathname: '/', state }]}>
+    <MemoryRouter initialEntries={[{ pathname: '/', state }]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <TopPage />
     </MemoryRouter>
   )

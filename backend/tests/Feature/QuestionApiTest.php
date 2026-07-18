@@ -38,7 +38,7 @@ class QuestionApiTest extends TestCase
             ['label' => 'イ', 'text' => '選択肢B', 'is_correct' => false],
         ]);
 
-        $response = $this->getJson('/api/questions/fe');
+        $response = $this->getJson('/api/questions/fe/2026%E5%B9%B4%20%E6%98%A5%E6%9C%9F');
 
         $response->assertStatus(200)
             ->assertJsonCount(1)
@@ -56,7 +56,7 @@ class QuestionApiTest extends TestCase
 
     public function test_returns_empty_array_for_unknown_exam_id(): void
     {
-        $response = $this->getJson('/api/questions/unknown');
+        $response = $this->getJson('/api/questions/unknown/2026%E5%B9%B4%20%E6%98%A5%E6%9C%9F');
 
         $response->assertStatus(200)->assertJson([]);
     }
@@ -67,7 +67,7 @@ class QuestionApiTest extends TestCase
         $this->createQuestion('fe', 1);
         $this->createQuestion('fe', 2);
 
-        $response = $this->getJson('/api/questions/fe');
+        $response = $this->getJson('/api/questions/fe/2026%E5%B9%B4%20%E6%98%A5%E6%9C%9F');
 
         $data = $response->json();
         $this->assertEquals(1, $data[0]['number']);
@@ -80,7 +80,7 @@ class QuestionApiTest extends TestCase
         $this->createQuestion('fe', 1);
         $this->createQuestion('ap', 1);
 
-        $response = $this->getJson('/api/questions/fe');
+        $response = $this->getJson('/api/questions/fe/2026%E5%B9%B4%20%E6%98%A5%E6%9C%9F');
 
         $response->assertStatus(200)->assertJsonCount(1);
         $this->assertEquals('fe', $response->json('0.examId'));

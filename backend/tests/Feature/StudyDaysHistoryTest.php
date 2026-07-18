@@ -54,8 +54,9 @@ class StudyDaysHistoryTest extends TestCase
     public function test_進捗保存時に日別テーブルが更新される(): void
     {
         $this->postJson('/api/progress', [
-            'exam_id'    => 'fe',
-            'exam_label' => '2024年 春期',
+            'exam_id'         => 'fe',
+            'exam_label'      => '2024年 春期',
+            'question_number' => 1,
         ]);
 
         $today = now()->toDateString();
@@ -69,8 +70,8 @@ class StudyDaysHistoryTest extends TestCase
 
     public function test_同日に同試験を複数回保存するとcountが加算される(): void
     {
-        $this->postJson('/api/progress', ['exam_id' => 'fe', 'exam_label' => '2024年 春期']);
-        $this->postJson('/api/progress', ['exam_id' => 'fe', 'exam_label' => '2024年 春期']);
+        $this->postJson('/api/progress', ['exam_id' => 'fe', 'exam_label' => '2024年 春期', 'question_number' => 1]);
+        $this->postJson('/api/progress', ['exam_id' => 'fe', 'exam_label' => '2024年 春期', 'question_number' => 1]);
 
         $today = now()->toDateString();
         $row = UserDailyProgress::where('date', $today)->where('exam_id', 'fe')->first();

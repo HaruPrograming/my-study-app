@@ -7,7 +7,7 @@ import { RecordPage } from './pages/RecordPage'
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <StudyProvider>
         <Routes>
           <Route path="/" element={<TopPage />} />
