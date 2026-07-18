@@ -26,6 +26,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+input, textarea, select {
+  font-size: 16px !important;
+}
+
 @keyframes popIn {
   0% { transform: scale(0.8); opacity: 0; }
   70% { transform: scale(1.05); }

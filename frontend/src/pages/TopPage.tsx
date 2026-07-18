@@ -205,7 +205,6 @@ export function TopPage() {
         <div className="absolute right-[-20px] bottom-[-30px] w-[140px] h-[140px] rounded-full pointer-events-none"
           style={{ background: 'rgba(255,255,255,0.06)' }} />
         <div className="flex items-center justify-between mb-0.5">
-          <div className="text-[11px]" style={{ color: 'rgba(255,255,255,0.7)' }}>おかえり</div>
           <div className="relative">
             <button
               onClick={() => setMenuOpen(prev => !prev)}
