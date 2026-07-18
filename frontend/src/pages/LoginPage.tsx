@@ -8,7 +8,7 @@ export function LoginPage() {
       style={{ background: 'linear-gradient(160deg,#2E9E5B,#1A6E3C)' }}>
       <div className="w-full max-w-[320px] flex flex-col items-center gap-6">
         <div className="text-center">
-          <div className="text-[36px] font-black text-white mb-2">まなびドリル</div>
+          <div className="text-[36px] font-black text-white mb-2">ときトレ</div>
           <div className="text-[14px]" style={{ color: 'rgba(255,255,255,0.8)' }}>
             資格試験の学習をサポートします
           </div>

@@ -14,9 +14,9 @@ describe('LoginPage', () => {
     vi.clearAllMocks()
   })
 
-  it('アプリ名「まなびドリル」が表示される', () => {
+  it('アプリ名「ときトレ」が表示される', () => {
     render(<LoginPage />)
-    expect(screen.getByText('まなびドリル')).toBeInTheDocument()
+    expect(screen.getByText('ときトレ')).toBeInTheDocument()
   })
 
   it('Google ログインボタンが表示される', () => {
