@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Exam;
 use App\Models\Question;
 use App\Models\Choice;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -13,10 +14,19 @@ class ExamTest extends TestCase
 {
     use RefreshDatabase;
 
+    private User $user;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->user = User::factory()->create();
+        $this->actingAs($this->user);
+    }
+
     public function test_試験一覧を取得できる(): void
     {
-        Exam::create(['name' => '基本情報技術者', 'short_name' => 'fe', 'color' => 'green']);
-        Exam::create(['name' => '応用情報技術者', 'short_name' => 'ap', 'color' => 'orange']);
+        Exam::create(['user_id' => $this->user->id, 'name' => '基本情報技術者', 'short_name' => 'fe', 'color' => 'green']);
+        Exam::create(['user_id' => $this->user->id, 'name' => '応用情報技術者', 'short_name' => 'ap', 'color' => 'orange']);
 
         $res = $this->getJson('/api/exams');
 
@@ -71,7 +81,7 @@ class ExamTest extends TestCase
 
     public function test_同じshort_nameは重複登録できない(): void
     {
-        Exam::create(['name' => '基本情報技術者', 'short_name' => 'fe', 'color' => 'green']);
+        Exam::create(['user_id' => $this->user->id, 'name' => '基本情報技術者', 'short_name' => 'fe', 'color' => 'green']);
 
         $res = $this->postJson('/api/exams', [
             'name'       => '別の試験',
@@ -95,7 +105,7 @@ class ExamTest extends TestCase
 
     public function test_試験を削除できる(): void
     {
-        $exam = Exam::create(['name' => '基本情報技術者', 'short_name' => 'fe', 'color' => 'green']);
+        $exam = Exam::create(['user_id' => $this->user->id, 'name' => '基本情報技術者', 'short_name' => 'fe', 'color' => 'green']);
 
         $res = $this->deleteJson("/api/exams/{$exam->id}");
 
@@ -105,7 +115,7 @@ class ExamTest extends TestCase
 
     public function test_試験削除時に関連する問題と選択肢も削除される(): void
     {
-        $exam = Exam::create(['name' => '基本情報技術者', 'short_name' => 'fe', 'color' => 'green']);
+        $exam = Exam::create(['user_id' => $this->user->id, 'name' => '基本情報技術者', 'short_name' => 'fe', 'color' => 'green']);
         $question = Question::create([
             'exam_id'    => 'fe', 'exam_label' => '2024年 春期',
             'category'   => 'テスト', 'number' => 1, 'total_count' => 1,
@@ -122,9 +132,9 @@ class ExamTest extends TestCase
 
     public function test_試験削除時に進捗データも削除される(): void
     {
-        $exam = Exam::create(['name' => '基本情報技術者', 'short_name' => 'fe', 'color' => 'green']);
-        DB::table('user_progress')->insert(['exam_id' => 'fe', 'exam_label' => '2024年 春期', 'completed_count' => 5]);
-        DB::table('user_daily_progress')->insert(['date' => '2026-07-17', 'exam_id' => 'fe', 'exam_label' => '2024年 春期', 'count' => 3]);
+        $exam = Exam::create(['user_id' => $this->user->id, 'name' => '基本情報技術者', 'short_name' => 'fe', 'color' => 'green']);
+        DB::table('user_progress')->insert(['user_id' => $this->user->id, 'exam_id' => 'fe', 'exam_label' => '2024年 春期', 'completed_count' => 5]);
+        DB::table('user_daily_progress')->insert(['user_id' => $this->user->id, 'date' => '2026-07-17', 'exam_id' => 'fe', 'exam_label' => '2024年 春期', 'count' => 3]);
 
         $this->deleteJson("/api/exams/{$exam->id}");
 

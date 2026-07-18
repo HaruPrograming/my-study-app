@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use App\Models\UserProgress;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -9,6 +10,15 @@ use Tests\TestCase;
 class ProgressTest extends TestCase
 {
     use RefreshDatabase;
+
+    private User $user;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->user = User::factory()->create();
+        $this->actingAs($this->user);
+    }
 
     public function test_進捗を記録できる(): void
     {
@@ -60,8 +70,8 @@ class ProgressTest extends TestCase
 
     public function test_進捗一覧を取得できる(): void
     {
-        UserProgress::create(['exam_id' => 'fe', 'exam_label' => '2024年 春期', 'completed_count' => 5]);
-        UserProgress::create(['exam_id' => 'ap', 'exam_label' => '2023年 秋期', 'completed_count' => 2]);
+        UserProgress::create(['user_id' => $this->user->id, 'exam_id' => 'fe', 'exam_label' => '2024年 春期', 'completed_count' => 5]);
+        UserProgress::create(['user_id' => $this->user->id, 'exam_id' => 'ap', 'exam_label' => '2023年 秋期', 'completed_count' => 2]);
 
         $res = $this->getJson('/api/progress');
 

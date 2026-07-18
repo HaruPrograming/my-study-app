@@ -4,12 +4,19 @@ namespace Tests\Feature;
 
 use App\Models\Choice;
 use App\Models\Question;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ExplanationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->actingAs(User::factory()->create());
+    }
 
     public function test_explanation付きの問題をAPIで取得できる(): void
     {

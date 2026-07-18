@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\PdfUpload;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -11,6 +12,15 @@ use Tests\TestCase;
 class PdfDuplicateCheckTest extends TestCase
 {
     use RefreshDatabase;
+
+    private User $user;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->user = User::factory()->create();
+        $this->actingAs($this->user);
+    }
 
     private function makePdf(string $content = 'PDF-CONTENT'): UploadedFile
     {
@@ -25,6 +35,7 @@ class PdfDuplicateCheckTest extends TestCase
         $fileHash   = hash('sha256', $pdfContent);
 
         PdfUpload::create([
+            'user_id'           => $this->user->id,
             'exam_id'           => 'fe',
             'exam_label'        => '2024年 春期',
             'question_pdf_path' => 'pdfs/existing.pdf',
@@ -50,6 +61,7 @@ class PdfDuplicateCheckTest extends TestCase
         $fileHash   = hash('sha256', $pdfContent);
 
         PdfUpload::create([
+            'user_id'           => $this->user->id,
             'exam_id'           => 'fe',
             'exam_label'        => '2024年 春期',
             'question_pdf_path' => 'pdfs/existing.pdf',
@@ -71,6 +83,7 @@ class PdfDuplicateCheckTest extends TestCase
         Storage::fake('private');
 
         PdfUpload::create([
+            'user_id'           => $this->user->id,
             'exam_id'           => 'fe',
             'exam_label'        => '2024年 春期',
             'question_pdf_path' => 'pdfs/existing.pdf',
@@ -95,6 +108,7 @@ class PdfDuplicateCheckTest extends TestCase
         $fileHash   = hash('sha256', $pdfContent);
 
         PdfUpload::create([
+            'user_id'           => $this->user->id,
             'exam_id'           => 'fe',
             'exam_label'        => '2024年 春期',
             'question_pdf_path' => 'pdfs/existing.pdf',
@@ -119,6 +133,7 @@ class PdfDuplicateCheckTest extends TestCase
         $fileHash   = hash('sha256', $pdfContent);
 
         PdfUpload::create([
+            'user_id'           => $this->user->id,
             'exam_id'           => 'fe',
             'exam_label'        => '2024年 春期',
             'question_pdf_path' => 'pdfs/existing.pdf',
@@ -138,6 +153,7 @@ class PdfDuplicateCheckTest extends TestCase
     public function test_AI生成でも同じexam_idとexam_labelが存在する場合409を返す(): void
     {
         PdfUpload::create([
+            'user_id'           => $this->user->id,
             'exam_id'           => 'fe',
             'exam_label'        => '2024年 春期',
             'question_pdf_path' => null,

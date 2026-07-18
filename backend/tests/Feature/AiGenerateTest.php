@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Jobs\GenerateAiQuestionsJob;
 use App\Models\PdfUpload;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -11,6 +12,12 @@ use Tests\TestCase;
 class AiGenerateTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->actingAs(User::factory()->create());
+    }
 
     public function test_プロンプトとタイトルを送ると202が返りレコードが作成される(): void
     {

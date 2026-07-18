@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\PdfUpload;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -10,9 +11,19 @@ class PdfUploadStatusTest extends TestCase
 {
     use RefreshDatabase;
 
+    private User $user;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->user = User::factory()->create();
+        $this->actingAs($this->user);
+    }
+
     public function test_pending状態のジョブのステータスを取得できる(): void
     {
         $upload = PdfUpload::create([
+            'user_id'           => $this->user->id,
             'exam_id'           => 'ap',
             'exam_label'        => '2024年 春期',
             'question_pdf_path' => 'pdfs/test.pdf',
@@ -28,6 +39,7 @@ class PdfUploadStatusTest extends TestCase
     public function test_done状態のジョブのステータスと件数を取得できる(): void
     {
         $upload = PdfUpload::create([
+            'user_id'           => $this->user->id,
             'exam_id'           => 'ap',
             'exam_label'        => '2024年 春期',
             'question_pdf_path' => 'pdfs/test.pdf',
@@ -44,6 +56,7 @@ class PdfUploadStatusTest extends TestCase
     public function test_failed状態のジョブはerror_messageを返す(): void
     {
         $upload = PdfUpload::create([
+            'user_id'           => $this->user->id,
             'exam_id'           => 'ap',
             'exam_label'        => '2024年 春期',
             'question_pdf_path' => 'pdfs/test.pdf',
