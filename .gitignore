@@ -1,0 +1,28 @@
+# === Frontend ===
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.env.local
+frontend/.env.*.local
+
+# === Production secrets ===
+.env.prod
+.env.*.prod
+
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === Editor / IDE ===
+.vscode/
+.idea/
+.cursor/
+.zed/
+.nova/
+
+# === Docker local overrides ===
+docker-compose.override.yml
+
+# === Logs ===
+*.log
+npm-debug.log*

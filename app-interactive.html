@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><span class="svg-icon" style="width:22px;height:22px;color:rgba(255,255,255,0.9)"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="26" height="32" rx="3" stroke="currentColor" stroke-width="2.5"/><rect x="10" y="8" width="4" height="32" rx="1" fill="currentColor" fill-opacity=".15" stroke="currentColor" stroke-width="1.5"/><line x1="16" y1="16" x2="28" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="21" x2="28" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="26" x2="24" y2="26" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M34 12 L40 8 L40 40 L34 36" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span> まなびドリル</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #fff;
+    --surface: #F4FAF5;
+    --surface2: #E8F4EA;
+    --accent: #2E9E5B;
+    --accent-soft: rgba(46,158,91,0.10);
+    --accent-glow: rgba(46,158,91,0.20);
+    --orange: #F57C2B;
+    --orange-soft: rgba(245,124,43,0.10);
+    --text: #1A2E1E;
+    --muted: #6B8070;
+    --border: rgba(46,158,91,0.13);
+  }
+  body {
+    background: #A8B4A8;
+    font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 32px;
+    min-height: 100vh;
+  }
+
+  /* ── Phone shell ── */
+  .phone {
+    width: 375px;
+    height: 812px;
+    background: var(--bg);
+    border-radius: 46px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  /* ── 画面共通 ── */
+  .screen {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    background: var(--bg);
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  .screen.active   { transform: translateX(0); }
+  .screen.exit-left{ transform: translateX(-30%); }
+
+  .sb {
+    height: 48px; padding: 14px 22px 0;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-shrink: 0;
+  }
+  .sb span { font-size: 13px; font-weight: 700; }
+
+  .hdr {
+    padding: 8px 18px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .hdr-c { text-align: center; }
+  .hdr-cat { font-size: 10px; color: var(--muted); }
+  .hdr-num { font-size: 12px; font-weight: 700; color: var(--text); }
+  .icon-btn {
+    width: 32px; height: 32px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: var(--accent); cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .prog {
+    padding: 6px 18px 8px; flex-shrink: 0;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .prog-track { flex: 1; height: 4px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .prog-fill  { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.5s ease; }
+  .prog-num   { font-size: 10px; color: var(--muted); white-space: nowrap; }
+
+  .scroll { flex: 1; overflow-y: auto; scrollbar-width: none; }
+  .scroll::-webkit-scrollbar { display: none; }
+
+  .sec-lbl {
+    font-size: 10px; font-weight: 800; letter-spacing: .08em;
+    color: var(--muted); margin-bottom: 8px;
+  }
+
+  /* ── トップ ── */
+  #screen-top .sb { background: linear-gradient(160deg,#2E9E5B,#1A6E3C); }
+
+  .top-hero {
+    background: linear-gradient(160deg,#2E9E5B,#1A6E3C);
+    padding: 4px 22px 22px; flex-shrink: 0; position: relative; overflow: hidden;
+  }
+  .top-hero::after {
+    content: ''; position: absolute; right: -20px; bottom: -30px;
+    width: 140px; height: 140px; border-radius: 50%;
+    background: rgba(255,255,255,0.06); pointer-events: none;
+  }
+  .top-greeting { font-size: 11px; color: rgba(255,255,255,0.7); margin-bottom: 2px; }
+  .top-appname  { font-size: 21px; font-weight: 900; color: #fff; margin-bottom: 14px; }
+  .streak-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 10px; padding: 7px 12px;
+  }
+  .streak-val { font-size: 15px; font-weight: 900; color: #fff; }
+  .streak-lbl { font-size: 9px; color: rgba(255,255,255,0.75); }
+  .top-stats-row {
+    display: flex; gap: 8px;
+  }
+  .top-stat-card {
+    flex: 1; background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 10px; padding: 8px 6px; text-align: center;
+  }
+  .top-stat-val { font-size: 17px; font-weight: 900; color: #fff; }
+  .top-stat-lbl { font-size: 9px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+
+  .top-body { padding: 18px 18px 100px; }
+
+  .shikaku-row { display: flex; gap: 8px; margin-bottom: 22px; }
+  .sp-card {
+    flex: 1; border-radius: 13px; padding: 13px 12px; cursor: pointer;
+    transition: transform .12s;
+  }
+  .sp-card:active { transform: scale(0.97); }
+  .sp-card.g { background: linear-gradient(135deg,#2E9E5B,#1A6E3C); box-shadow: 0 4px 14px var(--accent-glow); }
+  .sp-card.o { background: linear-gradient(135deg,#F57C2B,#C05810); box-shadow: 0 4px 14px rgba(245,124,43,0.22); }
+  .sp-card.lock { background: var(--surface); border: 1.5px solid var(--border); }
+  .sp-card.active-shikaku { box-shadow: 0 0 0 3px rgba(255,255,255,0.6), 0 4px 18px var(--accent-glow) !important; transform: scale(1.03); }
+  .sp-icon { font-size: 22px; margin-bottom: 5px; }
+  .sp-name { font-size: 12px; font-weight: 800; color: #fff; margin-bottom: 1px; }
+  .sp-sub  { font-size: 9px; color: rgba(255,255,255,0.7); margin-bottom: 6px; }
+  .sp-card.lock .sp-name { color: var(--muted); }
+  .sp-card.lock .sp-sub  { color: var(--border); }
+  .sp-bar  { height: 3px; background: rgba(255,255,255,0.2); border-radius: 99px; overflow: hidden; }
+  .sp-fill { height: 100%; background: rgba(255,255,255,0.85); border-radius: 99px; }
+
+  .nengo-list { display: flex; flex-direction: column; gap: 7px; transition: opacity 0.25s ease, transform 0.25s ease; }
+  .nengo-card {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 11px 13px;
+    display: flex; flex-direction: column; cursor: pointer;
+    transition: border-color .15s, background .15s;
+    overflow: hidden;
+  }
+  .nengo-card:active { background: var(--surface2); }
+  .nengo-card.selected { border-color: var(--accent); background: var(--accent-soft); }
+  .nengo-card-row { display: flex; align-items: center; gap: 10px; }
+  .nengo-start {
+    display: none; width: 100%; height: 42px;
+    background: var(--accent); color: #fff;
+    border: none; border-radius: 9px;
+    font-size: 13px; font-weight: 700;
+    cursor: pointer; margin-top: 10px;
+    box-shadow: 0 2px 8px var(--accent-glow);
+  }
+  .nengo-card.selected .nengo-start { display: block; }
+  .s-badge {
+    width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .s-badge.sp { background: var(--orange-soft); }
+  .s-badge.au { background: rgba(59,130,246,0.1); }
+  .s-icon { font-size: 14px; }
+  .s-lbl  { font-size: 7px; font-weight: 700; }
+  .s-badge.sp .s-lbl { color: var(--orange); }
+  .s-badge.au .s-lbl { color: #3B82F6; }
+  .ni { flex: 1; }
+  .ni-title { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+  .ni-bar   { height: 3px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .ni-fill  { height: 100%; background: var(--accent); border-radius: 99px; }
+  .ni-pct   { font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .pct-g { color: var(--accent); }
+  .pct-m { color: var(--muted); }
+  .new-tag {
+    font-size: 8px; font-weight: 700; color: var(--orange);
+    background: var(--orange-soft); border-radius: 99px;
+    padding: 1px 5px; margin-left: 4px;
+  }
+  .add-btn {
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    background: #fff; border: 1.5px dashed rgba(46,158,91,0.25);
+    border-radius: 12px; padding: 10px;
+    font-size: 12px; font-weight: 700; color: var(--accent); cursor: pointer; margin-top: 7px;
+  }
+
+  .top-footer {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 10px 18px 28px;
+    background: linear-gradient(to top,#fff 60%,transparent);
+  }
+  .btn-start {
+    width: 100%; height: 52px; background: var(--accent); color: #fff;
+    border: none; border-radius: 14px; font-size: 16px; font-weight: 700;
+    box-shadow: 0 4px 14px var(--accent-glow); cursor: pointer;
+    transition: transform .1s, box-shadow .1s;
+  }
+  .btn-start:active { transform: scale(0.98); }
+
+  /* ── モーダル ── */
+  .modal-overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.42);
+    display: flex; align-items: flex-end; z-index: 100;
+    opacity: 0; pointer-events: none; transition: opacity .25s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal-sheet {
+    width: 100%; background: #fff;
+    border-radius: 22px 22px 0 0; padding: 0 20px 32px;
+    transform: translateY(100%); transition: transform .3s cubic-bezier(0.4,0,0.2,1);
+  }
+  .modal-overlay.open .modal-sheet { transform: translateY(0); }
+  .modal-handle { width: 36px; height: 4px; background: #DDD; border-radius: 99px; margin: 12px auto 16px; }
+  .modal-title { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 16px; }
+  .form-lbl { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .06em; margin-bottom: 5px; }
+  .form-inp {
+    width: 100%; height: 40px; background: var(--surface);
+    border: 1.5px solid var(--border); border-radius: 10px;
+    padding: 0 12px; font-size: 13px; color: var(--text); margin-bottom: 12px;
+  }
+  .upload-box {
+    width: 100%; background: var(--surface);
+    border: 1.5px dashed rgba(46,158,91,0.3);
+    border-radius: 10px; padding: 12px 14px;
+    display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 10px;
+    transition: border-color .15s, background .15s;
+  }
+  .upload-box.done { border-color: var(--accent); background: var(--accent-soft); }
+  .ub-icon { font-size: 20px; }
+  .ub-text { font-size: 12px; color: var(--muted); }
+  .ub-text b { color: var(--accent); display: block; font-size: 11px; }
+  .modal-btns { display: flex; gap: 8px; margin-top: 6px; }
+  .btn-cancel {
+    flex: 1; height: 44px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 12px;
+    font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer;
+  }
+  .btn-save {
+    flex: 2; height: 44px; background: var(--accent); color: #fff;
+    border: none; border-radius: 12px; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .modal-note { font-size: 10px; color: var(--muted); text-align: center; margin-top: 8px; line-height: 1.5; }
+  .modal-note b { color: var(--accent); }
+
+  /* ── 学習画面 ── */
+  .tags { display: flex; gap: 5px; margin-bottom: 12px; }
+  .tag {
+    font-size: 9px; font-weight: 700; padding: 2px 8px;
+    border-radius: 99px; border: 1px solid var(--border);
+  }
+  .tag.or { background: var(--orange-soft); border-color: rgba(245,124,43,0.3); color: var(--orange); }
+  .tag.gr { background: var(--accent-soft); border-color: rgba(46,158,91,0.3); color: var(--accent); }
+
+  .q-text { font-size: 15px; font-weight: 700; line-height: 1.6; color: var(--text); margin-bottom: 16px; }
+
+  .choices { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .choice {
+    display: flex; align-items: center; gap: 10px;
+    border-radius: 12px; padding: 12px 14px; border: 2px solid var(--border); background: #fff;
+  }
+  .choice.ok   { border-color: var(--accent); background: var(--accent-soft); }
+  .choice.fade { border-color: transparent; background: var(--surface); opacity: 0.55; }
+  .c-badge {
+    width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800;
+  }
+  .choice.ok   .c-badge { background: var(--accent); color: #fff; }
+  .choice.fade .c-badge { background: #E0E8E2; color: var(--muted); }
+  .c-text { font-size: 13px; line-height: 1.45; }
+  .choice.ok   .c-text { color: var(--text); font-weight: 600; }
+  .choice.fade .c-text { color: var(--muted); }
+  .c-check { margin-left: auto; font-size: 16px; flex-shrink: 0; }
+
+  .divider {
+    height: 1px; background: var(--border); margin-bottom: 18px;
+    position: relative; display: flex; align-items: center; justify-content: center;
+  }
+  .div-lbl {
+    position: absolute; background: #fff; padding: 0 10px;
+    font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .08em;
+  }
+
+  .illust-block {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden; margin-bottom: 14px;
+  }
+  .illust-area {
+    padding: 18px 16px 14px;
+    background: linear-gradient(135deg,#EAF5EC,#F2F9F4);
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .illust-nodes { display: flex; align-items: center; gap: 6px; }
+  .inode {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: #fff; border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 10px 11px; min-width: 58px;
+  }
+  .inode.main {
+    background: var(--accent); border-color: var(--accent);
+    transform: scale(1.07); box-shadow: 0 4px 12px var(--accent-glow);
+  }
+  .inode .i-emoji { font-size: 26px; }
+  .inode .i-name  { font-size: 8px; font-weight: 700; color: var(--muted); text-align: center; }
+  .inode.main .i-name { color: rgba(255,255,255,0.85); }
+  .i-arr { font-size: 17px; color: var(--accent); }
+  .illust-sub { display: flex; gap: 8px; align-items: center; }
+  .inode-sm {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    background: #fff; border: 1.5px solid rgba(245,124,43,0.25);
+    border-radius: 10px; padding: 7px 10px;
+  }
+  .inode-sm .i-emoji { font-size: 20px; }
+  .inode-sm .i-name  { font-size: 8px; font-weight: 700; color: var(--orange); }
+  .illust-caption {
+    font-size: 12px; color: var(--muted); text-align: center; line-height: 1.6;
+    padding: 11px 16px; background: #fff; border-top: 1px solid var(--border);
+  }
+  .illust-caption b { color: var(--accent); }
+  .illust-caption .oi { color: var(--orange); font-weight: 700; }
+
+  .pts { display: flex; flex-direction: column; gap: 7px; }
+  .pt {
+    display: flex; align-items: flex-start; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 12px;
+  }
+  .pt-icon {
+    width: 22px; height: 22px; border-radius: 6px; background: var(--orange-soft);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; flex-shrink: 0;
+  }
+  .pt-text { font-size: 12px; line-height: 1.6; color: var(--text); }
+  .pt-text b { color: var(--orange); font-weight: 700; }
+
+  .study-footer {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 10px 18px 28px;
+    background: linear-gradient(to top,#fff 65%,transparent);
+    display: flex; gap: 8px;
+  }
+  .btn-next {
+    flex: 2; height: 50px; background: var(--accent); color: #fff;
+    border: none; border-radius: 13px; font-size: 15px; font-weight: 700;
+    box-shadow: 0 4px 12px var(--accent-glow); cursor: pointer;
+  }
+  .btn-pause {
+    flex: 1; height: 50px; background: var(--surface);
+    border: 1.5px solid var(--border); border-radius: 13px;
+    font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer;
+  }
+
+  /* ── 完了画面 ── */
+  .complete-body {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 32px 24px; gap: 16px;
+  }
+  .complete-badge {
+    width: 96px; height: 96px; background: var(--accent);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 48px; box-shadow: 0 0 0 16px var(--accent-soft);
+    animation: popIn .4s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  @keyframes popIn {
+    from { transform: scale(0); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+  .complete-title { font-size: 26px; font-weight: 900; color: var(--accent); }
+  .complete-sub   { font-size: 14px; color: var(--muted); text-align: center; line-height: 1.6; }
+  .complete-stats {
+    display: flex; gap: 12px; width: 100%;
+  }
+  .cs {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px; text-align: center;
+  }
+  .cs-val { font-size: 22px; font-weight: 900; color: var(--accent); }
+  .cs-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .btn-home {
+    width: 100%; height: 52px; background: var(--accent); color: #fff;
+    border: none; border-radius: 14px; font-size: 16px; font-weight: 700;
+    box-shadow: 0 4px 14px var(--accent-glow); cursor: pointer;
+    margin-top: 8px;
+  }
+
+  /* ── 記録画面 ── */
+  #screen-record .sb { background: linear-gradient(150deg,#2E9E5B,#1A6E3C); }
+  .rec-hero {
+    background: linear-gradient(150deg,#2E9E5B,#1A6E3C);
+    padding: 0 20px 20px; flex-shrink: 0;
+  }
+  .rec-title { font-size: 16px; font-weight: 900; color: #fff; margin-bottom: 14px; }
+  .rec-stats { display: flex; gap: 8px; }
+  .rec-stat {
+    flex: 1; background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 10px; padding: 8px; text-align: center;
+  }
+  .rs-val { font-size: 18px; font-weight: 900; color: #fff; }
+  .rs-lbl { font-size: 9px; color: rgba(255,255,255,0.7); }
+  .rec-scroll { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 18px 18px 90px; }
+  .rec-scroll::-webkit-scrollbar { display: none; }
+  .rec-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 14px;
+    display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+  }
+  .ri { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .ri.g { background: var(--accent-soft); }
+  .ri.o { background: var(--orange-soft); }
+  .rinfo { flex: 1; }
+  .rname { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+  .rmeta { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+  .rbar  { height: 4px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .rfill { height: 100%; border-radius: 99px; }
+  .rfill.g { background: var(--accent); }
+  .rfill.o { background: var(--orange); }
+  .rpct  { font-size: 12px; font-weight: 700; color: var(--accent); flex-shrink: 0; }
+  .cal-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px; }
+  .cal-title { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+  .cal-grid  { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
+  .cd { aspect-ratio: 1; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: var(--muted); }
+  .cd.done  { background: var(--accent); color: #fff; }
+  .cd.today { background: var(--accent); color: #fff; box-shadow: 0 0 0 2px #fff,0 0 0 3px var(--accent); }
+
+  /* ── フッターナビ ── */
+  .fnav {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: #fff; border-top: 1px solid var(--border);
+    padding: 8px 0 24px; display: flex; z-index: 10;
+  }
+  .fnav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    font-size: 9px; color: var(--muted); cursor: pointer;
+    transition: color .15s;
+  }
+  .fnav-item.on { color: var(--accent); }
+  .fnav-icon { font-size: 20px; }
+
+  /* 生成中オーバーレイ */
+  .generating {
+    position: absolute; inset: 0; background: rgba(255,255,255,0.92);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; z-index: 200; opacity: 0; pointer-events: none; transition: opacity .3s;
+  }
+  .generating.show { opacity: 1; pointer-events: all; }
+  .gen-spinner {
+    width: 48px; height: 48px; border: 3px solid var(--surface2);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .gen-text { font-size: 14px; font-weight: 700; color: var(--text); }
+  .gen-sub  { font-size: 12px; color: var(--muted); }
+
+  .svg-icon { display:inline-flex; align-items:center; justify-content:center; }
+  .svg-icon svg { display:block; }
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- ══ 画面1: トップ ══ -->
+  <div id="screen-top" class="screen active">
+    <div class="sb"><span style="color:#fff">9:41</span><span style="color:#fff">▲ 🔋</span></div>
+    <div class="top-hero">
+      <div class="top-greeting">おかえり <span class="svg-icon" style="width:18px;height:18px;color:rgba(255,255,255,0.9"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 10 L22 26" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M18 13 L18 28" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M26 13 L26 28" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M30 16 L30 28" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M14 22 L14 28" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M12 28 C12 34 16 38 22 38 C28 38 36 34 36 28 L30 28 L26 28 L22 28 L18 28 L14 28 L12 28Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" fill="currentColor" fill-opacity=".15"/></svg></span></div>
+      <div class="top-appname">まなびドリル</div>
+      <div class="top-stats-row">
+        <div class="top-stat-card">
+          <div class="top-stat-val"><span class="svg-icon" style="width:20px;height:20px;color:#F57C2B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24 6 C24 6 28 12 26 18 C30 14 32 10 30 6 C36 10 40 18 38 26 C36 34 30 42 24 42 C18 42 10 36 10 28 C10 22 14 18 16 16 C15 22 18 24 20 22 C18 16 20 10 24 6Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" fill="currentColor" fill-opacity=".15"/><path d="M22 30 C20 28 20 24 22 22 C22 26 25 27 24 30 C26 28 27 24 25 20 C29 23 30 28 28 32 C26 36 20 36 20 32" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none" opacity=".6"/></svg></span> 7</div>
+          <div class="top-stat-lbl">日連続</div>
+        </div>
+        <div class="top-stat-card">
+          <div class="top-stat-val">142</div>
+          <div class="top-stat-lbl">問完了</div>
+        </div>
+        <div class="top-stat-card">
+          <div class="top-stat-val">42%</div>
+          <div class="top-stat-lbl">全体進捗</div>
+        </div>
+      </div>
+    </div>
+    <div class="scroll" style="padding: 18px 18px 100px;">
+        <div class="sec-lbl">資格を選ぶ</div>
+        <div class="shikaku-row">
+          <div class="sp-card g" onclick="selectShikaku('基本情報', this)">
+            <div class="sp-icon"><span class="svg-icon" style="width:30px;height:30px;color:rgba(255,255,255,0.9)"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="10" width="36" height="24" rx="3" stroke="currentColor" stroke-width="2.5"/><rect x="10" y="14" width="28" height="16" rx="1.5" fill="currentColor" fill-opacity=".1" stroke="currentColor" stroke-width="1.5"/><path d="M16 38 L32 38" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M20 34 L18 38" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M28 34 L30 38" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="14" y="17" width="8" height="5" rx="1" fill="currentColor" opacity=".3"/><line x1="25" y1="18" x2="32" y2="18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".5"/><line x1="25" y1="21" x2="30" y2="21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg></span></div>
+            <div class="sp-name">基本情報</div>
+            <div class="sp-sub">学習中 · 42%</div>
+            <div class="sp-bar"><div class="sp-fill" style="width:42%"></div></div>
+          </div>
+          <div class="sp-card o" onclick="selectShikaku('応用情報', this)">
+            <div class="sp-icon"><span class="svg-icon" style="width:30px;height:30px;color:rgba(255,255,255,0.9)"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 20 L24 12 L40 20 L24 28 L8 20Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" fill="currentColor" fill-opacity=".12"/><path d="M34 24 L34 34 C34 34 29 38 24 38 C19 38 14 34 14 34 L14 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M40 20 L40 28" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="40" cy="30" r="2" fill="currentColor"/></svg></span></div>
+            <div class="sp-name">応用情報</div>
+            <div class="sp-sub">未着手</div>
+            <div class="sp-bar"><div class="sp-fill" style="width:0%"></div></div>
+          </div>
+          <div class="sp-card lock">
+            <div class="sp-icon"><span class="svg-icon" style="width:30px;height:30px;color:#9BB0A0"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="12" y="22" width="24" height="18" rx="4" stroke="currentColor" stroke-width="2.5"/><path d="M16 22 L16 16 C16 11 32 11 32 16 L32 22" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="24" cy="31" r="3" fill="currentColor" opacity=".4" stroke="currentColor" stroke-width="1.5"/><line x1="24" y1="33" x2="24" y2="37" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span></div>
+            <div class="sp-name" style="color:var(--muted)">ITパスポート</div>
+            <div class="sp-sub" style="color:var(--border)">準備中</div>
+          </div>
+        </div>
+
+        <div class="sec-lbl">年度・期を選ぶ</div>
+        <div class="nengo-list">
+          <div class="nengo-card" onclick="selectNengo(this, '2024年 春期')">
+            <div class="nengo-card-row">
+              <div class="s-badge sp"><div class="s-icon"><span class="svg-icon" style="width:16px;height:16px;color:#F57C2B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="4" fill="currentColor" opacity=".5"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(0 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(60 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(120 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(180 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(240 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(300 24 24)"/></svg></span></div><div class="s-lbl">春期</div></div>
+              <div class="ni">
+                <div class="ni-title">2024年 春期<span class="new-tag">NEW</span></div>
+                <div class="ni-bar"><div class="ni-fill" style="width:0%"></div></div>
+              </div>
+              <div class="ni-pct pct-m">未着手</div>
+            </div>
+            <button class="nengo-start" onclick="event.stopPropagation(); goStudy()">2024年 春期 をスタート →</button>
+          </div>
+          <div class="nengo-card selected" onclick="selectNengo(this, '2023年 秋期')">
+            <div class="nengo-card-row">
+              <div class="s-badge au"><div class="s-icon"><span class="svg-icon" style="width:16px;height:16px;color:#3B82F6"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24 8 C24 8 38 16 36 28 C34 36 28 40 24 40 C20 40 14 36 12 28 C10 16 24 8 24 8Z" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity=".15"/><path d="M24 40 L24 44" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M24 20 C24 20 28 24 26 30" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".5"/><path d="M24 20 C24 20 20 24 22 30" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".5"/><line x1="24" y1="20" x2="24" y2="34" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".5"/></svg></span></div><div class="s-lbl">秋期</div></div>
+              <div class="ni">
+                <div class="ni-title">2023年 秋期</div>
+                <div class="ni-bar"><div class="ni-fill" style="width:68%"></div></div>
+              </div>
+              <div class="ni-pct pct-g">68%</div>
+            </div>
+            <button class="nengo-start" onclick="event.stopPropagation(); goStudy()">2023年 秋期 を続ける →</button>
+          </div>
+          <div class="add-btn" onclick="openModal()">＋ 年度を追加</div>
+        </div>
+    </div>
+    <!-- フッターナビ -->
+    <div class="fnav">
+      <div class="fnav-item on"><div class="fnav-icon"><span class="svg-icon" style="width:22px;height:22px;color:currentColor"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 24 L24 10 L40 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 20 L13 38 L35 38 L35 20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="19" y="28" width="10" height="10" rx="2" stroke="currentColor" stroke-width="2" fill="currentColor" fill-opacity=".15"/></svg></span></div><span>ホーム</span></div>
+      <div class="fnav-item" onclick="goRecord()"><div class="fnav-icon"><span class="svg-icon" style="width:16px;height:16px;color:#2E9E5B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="38" x2="10" y2="10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="10" y1="38" x2="40" y2="38" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><rect x="14" y="26" width="6" height="12" rx="2" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="1.8"/><rect x="23" y="18" width="6" height="20" rx="2" fill="currentColor" opacity=".5" stroke="currentColor" stroke-width="1.8"/><rect x="32" y="12" width="6" height="26" rx="2" fill="currentColor" stroke="currentColor" stroke-width="1.8"/></svg></span></div><span>記録</span></div>
+    </div>
+
+    <!-- モーダル -->
+    <div class="modal-overlay" id="modal" onclick="handleModalClick(event)">
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div class="modal-title">年度を追加</div>
+        <div class="form-lbl">タイトル</div>
+        <input class="form-inp" id="modal-title-input" placeholder="例：2024年 春期">
+        <div class="form-lbl">問題 PDF</div>
+        <div class="upload-box" id="upload-q" onclick="fakeUpload('upload-q','問題PDF')">
+          <div class="ub-icon"><span class="svg-icon" style="width:22px;height:22px;color:#2E9E5B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 8 L30 8 L38 16 L38 40 L12 40 Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" fill="currentColor" fill-opacity=".08"/><path d="M30 8 L30 16 L38 16" stroke="currentColor" stroke-width="2" stroke-linejoin="round" fill="none"/><line x1="18" y1="24" x2="32" y2="24" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".6"/><line x1="18" y1="29" x2="32" y2="29" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".6"/><line x1="18" y1="34" x2="26" y2="34" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".6"/></svg></span></div>
+          <div class="ub-text"><b id="upload-q-label">タップしてアップロード</b>問題PDFを選択</div>
+        </div>
+        <div class="form-lbl">解答 PDF</div>
+        <div class="upload-box" id="upload-a" onclick="fakeUpload('upload-a','解答PDF')">
+          <div class="ub-icon"><span class="svg-icon" style="width:22px;height:22px;color:#2E9E5B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="12" width="28" height="30" rx="3" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity=".06"/><path d="M19 12 L19 8 C19 7 20 6 24 6 C28 6 29 7 29 8 L29 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="16" y="10" width="16" height="6" rx="2" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.5"/><line x1="16" y1="24" x2="32" y2="24" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".5"/><line x1="16" y1="30" x2="32" y2="30" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".5"/><line x1="16" y1="36" x2="24" y2="36" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".5"/></svg></span></div>
+          <div class="ub-text"><b id="upload-a-label">タップしてアップロード</b>解答例PDFを選択</div>
+        </div>
+        <div class="modal-btns">
+          <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+          <button class="btn-save" onclick="saveAndGenerate()">保存 → 解説を自動生成</button>
+        </div>
+        <div class="modal-note">保存後 <b>AIが解説・イラストを自動生成</b> します</div>
+      </div>
+    </div>
+
+    <!-- 生成中 -->
+    <div class="generating" id="generating">
+      <div class="gen-spinner"></div>
+      <div class="gen-text">AIが解説を生成中…</div>
+      <div class="gen-sub">問題・イラスト・ポイントを作成しています</div>
+    </div>
+  </div>
+
+  <!-- ══ 画面2: 学習 ══ -->
+  <div id="screen-study" class="screen">
+    <div class="sb"><span style="color:var(--text)">9:41</span><span style="color:var(--text)">▲ 🔋</span></div>
+    <div class="hdr">
+      <div class="icon-btn" onclick="goTop()">←</div>
+      <div class="hdr-c">
+        <div class="hdr-cat" id="study-cat">基本情報 · 2023年秋期</div>
+        <div class="hdr-num" id="study-num">Q55 / 80</div>
+      </div>
+      <div class="icon-btn" onclick="goRecord()"><span class="svg-icon" style="width:16px;height:16px;color:#2E9E5B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="38" x2="10" y2="10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="10" y1="38" x2="40" y2="38" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><rect x="14" y="26" width="6" height="12" rx="2" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="1.8"/><rect x="23" y="18" width="6" height="20" rx="2" fill="currentColor" opacity=".5" stroke="currentColor" stroke-width="1.8"/><rect x="32" y="12" width="6" height="26" rx="2" fill="currentColor" stroke="currentColor" stroke-width="1.8"/></svg></span></div>
+    </div>
+    <div class="prog">
+      <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:68%"></div></div>
+      <div class="prog-num" id="prog-num">68%</div>
+    </div>
+    <div class="scroll" style="padding: 16px 18px 110px;">
+      <div class="tags">
+        <span class="tag or">2023 秋期</span>
+        <span class="tag gr">コンピュータ構成</span>
+      </div>
+      <div class="q-text">コンピュータの5大装置の組み合わせとして，適切なものはどれか。</div>
+      <div class="choices">
+        <div class="choice ok">
+          <div class="c-badge">ア</div>
+          <div class="c-text">制御・演算・記憶・入力・出力装置</div>
+          <div class="c-check"><span class="svg-icon" style="width:18px;height:18px;color:#2E9E5B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="16" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity=".1"/><path d="M14 24 L20 31 L34 17" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+        </div>
+        <div class="choice fade">
+          <div class="c-badge">イ</div>
+          <div class="c-text">制御・論理・記憶・入力・通信装置</div>
+        </div>
+        <div class="choice fade">
+          <div class="c-badge">ウ</div>
+          <div class="c-text">演算・論理・主記憶・入力・出力装置</div>
+        </div>
+        <div class="choice fade">
+          <div class="c-badge">エ</div>
+          <div class="c-text">制御・演算・補助記憶・入力・出力装置</div>
+        </div>
+      </div>
+      <div class="divider"><span class="div-lbl">POINT</span></div>
+      <div class="illust-block">
+        <div class="illust-area">
+          <div class="illust-nodes">
+            <div class="inode"><div class="i-emoji"><span class="svg-icon" style="width:28px;height:28px;color:#2E9E5B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="14" width="38" height="22" rx="4" stroke="currentColor" stroke-width="2.5"/><rect x="10" y="19" width="4" height="4" rx="1" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="1.2"/><rect x="17" y="19" width="4" height="4" rx="1" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="1.2"/><rect x="24" y="19" width="4" height="4" rx="1" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="1.2"/><rect x="31" y="19" width="4" height="4" rx="1" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="1.2"/><rect x="10" y="26" width="4" height="4" rx="1" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="1.2"/><rect x="17" y="26" width="4" height="4" rx="1" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="1.2"/><rect x="24" y="26" width="4" height="4" rx="1" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="1.2"/><rect x="31" y="26" width="4" height="4" rx="1" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="1.2"/><rect x="14" y="31" width="20" height="3" rx="1.5" fill="currentColor" opacity=".4" stroke="currentColor" stroke-width="1.2"/></svg></span></div><div class="i-name">入力装置</div></div>
+            <div class="i-arr">→</div>
+            <div class="inode main"><div class="i-emoji"><span class="svg-icon" style="width:28px;height:28px;color:rgba(255,255,255,0.95)"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24 10 C18 10 12 14 12 20 C12 24 14 26 14 26 C12 27 10 30 12 34 C14 38 18 38 20 37 C21 39 22.5 40 24 40 C25.5 40 27 39 28 37 C30 38 34 38 36 34 C38 30 36 27 34 26 C34 26 36 24 36 20 C36 14 30 10 24 10Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><line x1="24" y1="10" x2="24" y2="40" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2" opacity=".4"/><path d="M17 20 Q20 17 23 20 Q20 23 17 20Z" fill="currentColor" opacity=".25"/><path d="M31 20 Q28 17 25 20 Q28 23 31 20Z" fill="currentColor" opacity=".25"/><path d="M15 28 Q18 25 21 28" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M33 28 Q30 25 27 28" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span></div><div class="i-name">制御装置<br>演算装置</div></div>
+            <div class="i-arr">→</div>
+            <div class="inode"><div class="i-emoji"><span class="svg-icon" style="width:28px;height:28px;color:#2E9E5B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="8" width="38" height="26" rx="3" stroke="currentColor" stroke-width="2.5"/><rect x="9" y="12" width="30" height="18" rx="1.5" fill="currentColor" fill-opacity=".1" stroke="currentColor" stroke-width="1.5"/><line x1="20" y1="38" x2="28" y2="38" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="24" y1="34" x2="24" y2="38" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="13,26 18,20 23,23 28,16 35,18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity=".6"/></svg></span></div><div class="i-name">出力装置</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+            <div style="font-size:10px;font-weight:700;color:var(--orange)">＋ 記憶装置</div>
+            <div class="illust-sub">
+              <div class="inode-sm"><div class="i-emoji"><span class="svg-icon" style="width:22px;height:22px;color:#F57C2B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="32" height="32" rx="4" stroke="currentColor" stroke-width="2.5"/><rect x="14" y="8" width="14" height="12" rx="2" fill="currentColor" fill-opacity=".15" stroke="currentColor" stroke-width="1.8"/><rect x="22" y="10" width="4" height="8" rx="1" fill="currentColor" opacity=".4"/><rect x="12" y="26" width="24" height="10" rx="2" fill="currentColor" fill-opacity=".15" stroke="currentColor" stroke-width="1.8"/><line x1="16" y1="29" x2="32" y2="29" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" opacity=".5"/><line x1="16" y1="32" x2="28" y2="32" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" opacity=".5"/></svg></span></div><div class="i-name">主記憶（RAM）</div></div>
+              <div style="font-size:13px;color:var(--muted)">＋</div>
+              <div class="inode-sm"><div class="i-emoji"><span class="svg-icon" style="width:22px;height:22px;color:#F57C2B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="16" stroke="currentColor" stroke-width="2.5"/><circle cx="24" cy="24" r="10" stroke="currentColor" stroke-width="1.5" opacity=".4"/><circle cx="24" cy="24" r="4" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="1.5"/><circle cx="24" cy="24" r="2" fill="currentColor"/></svg></span></div><div class="i-name">補助記憶（SSD）</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="illust-caption">
+          <b>制御装置＋演算装置</b> をまとめたのが CPU。<br>
+          <span class="oi">記憶装置</span>は主記憶（RAM）と補助記憶（SSD）の2種類あるよ。
+        </div>
+      </div>
+      <div class="pts">
+        <div class="pt"><div class="pt-icon"><span class="svg-icon" style="width:14px;height:14px;color:#F57C2B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="16" stroke="currentColor" stroke-width="2.5"/><circle cx="24" cy="24" r="10" stroke="currentColor" stroke-width="2" opacity=".5"/><circle cx="24" cy="24" r="5" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="2"/><line x1="24" y1="4" x2="24" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="44" y1="24" x2="36" y2="24" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M38 10 L30 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M30 14 L30 18 L34 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div><div class="pt-text"><b>5大装置</b>：制御・演算・記憶・入力・出力</div></div>
+        <div class="pt"><div class="pt-icon"><span class="svg-icon" style="width:14px;height:14px;color:#F57C2B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M28 6 L16 26 L22 26 L18 42 L34 20 L27 20 L28 6Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" fill="currentColor" fill-opacity=".15"/></svg></span></div><div class="pt-text">CPU ＝ <b>制御装置 ＋ 演算装置</b></div></div>
+        <div class="pt"><div class="pt-icon"><span class="svg-icon" style="width:14px;height:14px;color:#F57C2B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24 8 C18 8 13 13 13 19 C13 23 15 26 18 28 L18 34 L30 34 L30 28 C33 26 35 23 35 19 C35 13 30 8 24 8Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" fill="currentColor" fill-opacity=".12"/><line x1="19" y1="37" x2="29" y2="37" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="20" y1="40" x2="28" y2="40" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M24 14 L22 20 L25 20 L22 26" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".6"/></svg></span></div><div class="pt-text">主記憶（RAM）と補助記憶（SSD）は<b>別物</b></div></div>
+      </div>
+    </div>
+    <div class="study-footer">
+      <button class="btn-pause" onclick="goTop()"><span class="svg-icon" style="width:14px;height:14px;color:#6B8070"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="16" stroke="currentColor" stroke-width="2.5"/><rect x="17" y="16" width="5" height="16" rx="2" fill="currentColor" opacity=".5" stroke="currentColor" stroke-width="1.5"/><rect x="26" y="16" width="5" height="16" rx="2" fill="currentColor" opacity=".5" stroke="currentColor" stroke-width="1.5"/></svg></span> 中断</button>
+      <button class="btn-next" onclick="goComplete()">次へ →</button>
+    </div>
+  </div>
+
+  <!-- ══ 画面3: セクション完了 ══ -->
+  <div id="screen-complete" class="screen">
+    <div class="sb"><span style="color:var(--text)">9:41</span><span style="color:var(--text)">▲ 🔋</span></div>
+    <div class="complete-body">
+      <div class="complete-badge"><span class="svg-icon" style="width:52px;height:52px;color:#fff"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 38 L20 16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M10 38 C12 34 16 34 20 36 C22 37 24 36 24 34" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".5"/><rect x="28" y="8" width="4" height="4" rx="1" fill="currentColor" transform="rotate(20 30 10)"/><rect x="36" y="16" width="3" height="3" rx=".5" fill="currentColor" opacity=".6" transform="rotate(-15 37 17)"/><circle cx="32" cy="26" r="2" fill="currentColor" opacity=".7"/><rect x="20" y="10" width="3" height="3" rx=".5" fill="currentColor" opacity=".6" transform="rotate(30 21 11)"/><circle cx="40" cy="30" r="1.5" fill="currentColor" opacity=".6"/></svg></span></div>
+      <div class="complete-title">お疲れさま！</div>
+      <div class="complete-sub">今日の学習が完了しました。<br>この調子で続けよう！</div>
+      <div class="complete-stats">
+        <div class="cs"><div class="cs-val"><span class="svg-icon" style="width:20px;height:20px;color:#F57C2B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24 6 C24 6 28 12 26 18 C30 14 32 10 30 6 C36 10 40 18 38 26 C36 34 30 42 24 42 C18 42 10 36 10 28 C10 22 14 18 16 16 C15 22 18 24 20 22 C18 16 20 10 24 6Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" fill="currentColor" fill-opacity=".15"/><path d="M22 30 C20 28 20 24 22 22 C22 26 25 27 24 30 C26 28 27 24 25 20 C29 23 30 28 28 32 C26 36 20 36 20 32" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none" opacity=".6"/></svg></span> 8</div><div class="cs-lbl">日連続</div></div>
+        <div class="cs"><div class="cs-val">+5</div><div class="cs-lbl">今日の問題</div></div>
+        <div class="cs"><div class="cs-val">69%</div><div class="cs-lbl">進捗</div></div>
+      </div>
+      <button class="btn-home" onclick="goTop()">ホームに戻る</button>
+    </div>
+  </div>
+
+  <!-- ══ 画面4: 記録 ══ -->
+  <div id="screen-record" class="screen">
+    <div class="sb"><span style="color:#fff">9:41</span><span style="color:#fff">▲ 🔋</span></div>
+    <div class="rec-hero">
+      <div class="rec-title"><span class="svg-icon" style="width:18px;height:18px;color:rgba(255,255,255,0.9)"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="38" x2="10" y2="10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="10" y1="38" x2="40" y2="38" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><rect x="14" y="26" width="6" height="12" rx="2" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="1.8"/><rect x="23" y="18" width="6" height="20" rx="2" fill="currentColor" opacity=".5" stroke="currentColor" stroke-width="1.8"/><rect x="32" y="12" width="6" height="26" rx="2" fill="currentColor" stroke="currentColor" stroke-width="1.8"/></svg></span> 学習記録</div>
+      <div class="rec-stats">
+        <div class="rec-stat"><div class="rs-val"><span class="svg-icon" style="width:18px;height:18px;color:#F57C2B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24 6 C24 6 28 12 26 18 C30 14 32 10 30 6 C36 10 40 18 38 26 C36 34 30 42 24 42 C18 42 10 36 10 28 C10 22 14 18 16 16 C15 22 18 24 20 22 C18 16 20 10 24 6Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" fill="currentColor" fill-opacity=".15"/><path d="M22 30 C20 28 20 24 22 22 C22 26 25 27 24 30 C26 28 27 24 25 20 C29 23 30 28 28 32 C26 36 20 36 20 32" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none" opacity=".6"/></svg></span> 7</div><div class="rs-lbl">日連続</div></div>
+        <div class="rec-stat"><div class="rs-val">142</div><div class="rs-lbl">問完了</div></div>
+        <div class="rec-stat"><div class="rs-val">42%</div><div class="rs-lbl">進捗</div></div>
+      </div>
+    </div>
+    <div class="rec-scroll">
+      <div class="sec-lbl">資格別 進捗</div>
+      <div class="rec-card">
+        <div class="ri g"><span class="svg-icon" style="width:20px;height:20px;color:#2E9E5B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="10" width="36" height="24" rx="3" stroke="currentColor" stroke-width="2.5"/><rect x="10" y="14" width="28" height="16" rx="1.5" fill="currentColor" fill-opacity=".1" stroke="currentColor" stroke-width="1.5"/><path d="M16 38 L32 38" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M20 34 L18 38" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M28 34 L30 38" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="14" y="17" width="8" height="5" rx="1" fill="currentColor" opacity=".3"/><line x1="25" y1="18" x2="32" y2="18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".5"/><line x1="25" y1="21" x2="30" y2="21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg></span></div>
+        <div class="rinfo">
+          <div class="rname">基本情報技術者</div>
+          <div class="rmeta">142問 / 340問</div>
+          <div class="rbar"><div class="rfill g" style="width:42%"></div></div>
+        </div>
+        <div class="rpct">42%</div>
+      </div>
+      <div class="rec-card">
+        <div class="ri o"><span class="svg-icon" style="width:20px;height:20px;color:#F57C2B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 20 L24 12 L40 20 L24 28 L8 20Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" fill="currentColor" fill-opacity=".12"/><path d="M34 24 L34 34 C34 34 29 38 24 38 C19 38 14 34 14 34 L14 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M40 20 L40 28" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="40" cy="30" r="2" fill="currentColor"/></svg></span></div>
+        <div class="rinfo">
+          <div class="rname">応用情報技術者</div>
+          <div class="rmeta">未着手</div>
+          <div class="rbar"><div class="rfill o" style="width:0%"></div></div>
+        </div>
+        <div class="rpct" style="color:var(--muted)">ー</div>
+      </div>
+      <div class="sec-lbl" style="margin-top:18px">今月の学習日</div>
+      <div class="cal-card">
+        <div class="cal-title">2024年 6月</div>
+        <div class="cal-grid">
+          <div class="cd" style="font-size:8px;color:var(--muted)">日</div>
+          <div class="cd" style="font-size:8px;color:var(--muted)">月</div>
+          <div class="cd" style="font-size:8px;color:var(--muted)">火</div>
+          <div class="cd" style="font-size:8px;color:var(--muted)">水</div>
+          <div class="cd" style="font-size:8px;color:var(--muted)">木</div>
+          <div class="cd" style="font-size:8px;color:var(--muted)">金</div>
+          <div class="cd" style="font-size:8px;color:var(--muted)">土</div>
+          <div class="cd"></div><div class="cd"></div><div class="cd"></div><div class="cd"></div><div class="cd"></div>
+          <div class="cd done">1</div><div class="cd">2</div>
+          <div class="cd done">3</div><div class="cd done">4</div><div class="cd">5</div>
+          <div class="cd done">6</div><div class="cd done">7</div><div class="cd done">8</div><div class="cd">9</div>
+          <div class="cd">10</div><div class="cd done">11</div><div class="cd done">12</div><div class="cd done">13</div>
+          <div class="cd done">14</div><div class="cd done">15</div><div class="cd">16</div><div class="cd">17</div>
+          <div class="cd done">18</div><div class="cd done">19</div><div class="cd done">20</div><div class="cd">21</div>
+          <div class="cd done">22</div><div class="cd">23</div><div class="cd">24</div><div class="cd done">25</div>
+          <div class="cd done">26</div><div class="cd today">27</div>
+        </div>
+      </div>
+    </div>
+    <div class="fnav">
+      <div class="fnav-item" onclick="goTop()"><div class="fnav-icon"><span class="svg-icon" style="width:22px;height:22px;color:currentColor"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 24 L24 10 L40 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 20 L13 38 L35 38 L35 20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="19" y="28" width="10" height="10" rx="2" stroke="currentColor" stroke-width="2" fill="currentColor" fill-opacity=".15"/></svg></span></div><span>ホーム</span></div>
+      <div class="fnav-item on"><div class="fnav-icon"><span class="svg-icon" style="width:22px;height:22px;color:currentColor"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="38" x2="10" y2="10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="10" y1="38" x2="40" y2="38" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><rect x="14" y="26" width="6" height="12" rx="2" fill="currentColor" opacity=".3" stroke="currentColor" stroke-width="1.8"/><rect x="23" y="18" width="6" height="20" rx="2" fill="currentColor" opacity=".5" stroke="currentColor" stroke-width="1.8"/><rect x="32" y="12" width="6" height="26" rx="2" fill="currentColor" stroke="currentColor" stroke-width="1.8"/></svg></span></div><span>記録</span></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let current = 'top';
+
+  function showScreen(id) {
+    const prev = document.querySelector('.screen.active');
+    const next = document.getElementById('screen-' + id);
+    if (!next || prev === next) return;
+    prev.classList.add('exit-left');
+    next.classList.add('active');
+    setTimeout(() => { prev.classList.remove('active', 'exit-left'); }, 320);
+    current = id;
+  }
+
+  function goBack(id) {
+    const prev = document.querySelector('.screen.active');
+    const next = document.getElementById('screen-' + id);
+    if (!next || prev === next) return;
+    // スライドバック
+    next.style.transform = 'translateX(-30%)';
+    next.classList.add('active');
+    requestAnimationFrame(() => {
+      next.style.transition = 'transform 0.3s cubic-bezier(0.4,0,0.2,1)';
+      next.style.transform = 'translateX(0)';
+      prev.style.transition = 'transform 0.3s cubic-bezier(0.4,0,0.2,1)';
+      prev.style.transform = 'translateX(100%)';
+    });
+    setTimeout(() => {
+      prev.classList.remove('active');
+      prev.style.transform = '';
+      prev.style.transition = '';
+      next.style.transform = '';
+      next.style.transition = '';
+    }, 320);
+    current = id;
+  }
+
+  function goStudy() { showScreen('study'); }
+  function goComplete() { showScreen('complete'); }
+  function goRecord() { showScreen('record'); }
+  function goTop() { goBack('top'); }
+
+  const nengoData = {
+    '基本情報': [
+      { label: '2024年 春期', season: 'sp', icon: `<span class="svg-icon" style="width:16px;height:16px;color:#F57C2B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="4" fill="currentColor" opacity=".5"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(0 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(60 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(120 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(180 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(240 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(300 24 24)"/></svg></span>`, pct: 0,  pctLabel: '未着手', isNew: true },
+      { label: '2023年 秋期', season: 'au', icon: `<span class="svg-icon" style="width:16px;height:16px;color:#3B82F6"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24 8 C24 8 38 16 36 28 C34 36 28 40 24 40 C20 40 14 36 12 28 C10 16 24 8 24 8Z" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity=".15"/><path d="M24 40 L24 44" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M24 20 C24 20 28 24 26 30" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".5"/><path d="M24 20 C24 20 20 24 22 30" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".5"/><line x1="24" y1="20" x2="24" y2="34" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".5"/></svg></span>`, pct: 68, pctLabel: '68%',   isNew: false },
+      { label: '2023年 春期', season: 'sp', icon: `<span class="svg-icon" style="width:16px;height:16px;color:#F57C2B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="4" fill="currentColor" opacity=".5"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(0 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(60 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(120 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(180 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(240 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(300 24 24)"/></svg></span>`, pct: 100,pctLabel: '✓ 完了', isNew: false },
+      { label: '2022年 秋期', season: 'au', icon: `<span class="svg-icon" style="width:16px;height:16px;color:#3B82F6"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24 8 C24 8 38 16 36 28 C34 36 28 40 24 40 C20 40 14 36 12 28 C10 16 24 8 24 8Z" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity=".15"/><path d="M24 40 L24 44" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M24 20 C24 20 28 24 26 30" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".5"/><path d="M24 20 C24 20 20 24 22 30" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".5"/><line x1="24" y1="20" x2="24" y2="34" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".5"/></svg></span>`, pct: 30, pctLabel: '30%',   isNew: false },
+    ],
+    '応用情報': [
+      { label: '2024年 春期', season: 'sp', icon: `<span class="svg-icon" style="width:16px;height:16px;color:#F57C2B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="4" fill="currentColor" opacity=".5"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(0 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(60 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(120 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(180 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(240 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(300 24 24)"/></svg></span>`, pct: 0,  pctLabel: '未着手', isNew: true },
+      { label: '2023年 秋期', season: 'au', icon: `<span class="svg-icon" style="width:16px;height:16px;color:#3B82F6"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24 8 C24 8 38 16 36 28 C34 36 28 40 24 40 C20 40 14 36 12 28 C10 16 24 8 24 8Z" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity=".15"/><path d="M24 40 L24 44" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M24 20 C24 20 28 24 26 30" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".5"/><path d="M24 20 C24 20 20 24 22 30" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".5"/><line x1="24" y1="20" x2="24" y2="34" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".5"/></svg></span>`, pct: 0,  pctLabel: '未着手', isNew: true },
+      { label: '2023年 春期', season: 'sp', icon: `<span class="svg-icon" style="width:16px;height:16px;color:#F57C2B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="4" fill="currentColor" opacity=".5"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(0 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(60 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(120 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(180 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(240 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(300 24 24)"/></svg></span>`, pct: 0,  pctLabel: '未着手', isNew: false },
+    ],
+  };
+
+  function selectShikaku(name, el) {
+    // 選択状態切り替え
+    document.querySelectorAll('.sp-card').forEach(c => c.classList.remove('active-shikaku'));
+    el.classList.add('active-shikaku');
+
+    // 年度リストをアニメーションで切り替え
+    const list = document.querySelector('.nengo-list');
+    list.style.opacity = '0';
+    list.style.transform = 'translateY(8px)';
+
+    setTimeout(() => {
+      const data = nengoData[name] || [];
+      const addBtn = `<div class="add-btn" onclick="openModal()">＋ 年度を追加</div>`;
+      list.innerHTML = data.map(d => `
+        <div class="nengo-card" onclick="selectNengo(this, '${d.label}')">
+          <div class="nengo-card-row">
+            <div class="s-badge ${d.season}"><div class="s-icon">${d.icon}</div><div class="s-lbl">${d.season === 'sp' ? '春期' : '秋期'}</div></div>
+            <div class="ni">
+              <div class="ni-title">${d.label}${d.isNew ? '<span class="new-tag">NEW</span>' : ''}</div>
+              <div class="ni-bar"><div class="ni-fill" style="width:${d.pct}%"></div></div>
+            </div>
+            <div class="ni-pct ${d.pct === 0 ? 'pct-m' : 'pct-g'}">${d.pctLabel}</div>
+          </div>
+          <button class="nengo-start" onclick="event.stopPropagation(); goStudy()">${d.label} をスタート →</button>
+        </div>
+      `).join('') + addBtn;
+
+      list.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+      list.style.opacity = '1';
+      list.style.transform = 'translateY(0)';
+    }, 180);
+  }
+
+  function selectNengo(el, title) {
+    document.querySelectorAll('.nengo-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    const btn = el.querySelector('.nengo-start');
+    if (btn) btn.textContent = title + ' をスタート →';
+  }
+
+  function openModal() {
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+  }
+  function handleModalClick(e) {
+    if (e.target === document.getElementById('modal')) closeModal();
+  }
+
+  function fakeUpload(id, label) {
+    const box = document.getElementById(id);
+    const lbl = document.getElementById(id + '-label');
+    box.classList.add('done');
+    lbl.textContent = '✓ ' + label + '_2024.pdf';
+  }
+
+  function saveAndGenerate() {
+    closeModal();
+    const gen = document.getElementById('generating');
+    gen.classList.add('show');
+    setTimeout(() => {
+      gen.classList.remove('show');
+      // 新しい年度をリストに追加
+      const list = document.querySelector('.nengo-list');
+      const addBtn = list.querySelector('.add-btn');
+      const newCard = document.createElement('div');
+      newCard.className = 'nengo-card';
+      const titleVal = document.getElementById('modal-title-input').value || '2024年 春期';
+      newCard.innerHTML = `
+        <div class="nengo-card-row">
+          <div class="s-badge sp"><div class="s-icon"><span class="svg-icon" style="width:16px;height:16px;color:#F57C2B"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="4" fill="currentColor" opacity=".5"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(0 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(60 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(120 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(180 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(240 24 24)"/><ellipse cx="24" cy="13" rx="3.5" ry="5.5" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.8" transform="rotate(300 24 24)"/></svg></span></div><div class="s-lbl">春期</div></div>
+          <div class="ni">
+            <div class="ni-title">${titleVal}<span class="new-tag">NEW</span></div>
+            <div class="ni-bar"><div class="ni-fill" style="width:0%"></div></div>
+          </div>
+          <div class="ni-pct pct-m">未着手</div>
+        </div>
+        <button class="nengo-start" onclick="event.stopPropagation(); goStudy()">${titleVal} をスタート →</button>
+      `;
+      newCard.onclick = () => selectNengo(newCard, titleVal);
+      list.insertBefore(newCard, addBtn);
+    }, 2500);
+  }
+</script>
+</body>
+</html>
