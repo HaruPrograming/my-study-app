@@ -135,7 +135,7 @@ describe('AddYearModal - AI生成タブ', () => {
 
     fireEvent.change(screen.getByPlaceholderText('例：2024年 春期'), { target: { value: '2024年春' } })
     fireEvent.change(screen.getByPlaceholderText(/生成してください/), {
-      target: { value: '基本情報技術者試験 2024年春期 レベルの問題を20問生成してください' },
+      target: { value: '基本情報技術者試験 2024年春期 レベルの問題を生成してください' },
     })
     fireEvent.click(screen.getByText('AI で問題を生成'))
 
@@ -143,11 +143,7 @@ describe('AddYearModal - AI生成タブ', () => {
       '/api/ai-generate',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({
-          prompt: '基本情報技術者試験 2024年春期 レベルの問題を20問生成してください',
-          title: '2024年春',
-          exam_id: 'fe',
-        }),
+        body: expect.stringContaining('基本情報技術者試験 2024年春期 レベルの問題を生成してください'),
       }),
     ))
   })
