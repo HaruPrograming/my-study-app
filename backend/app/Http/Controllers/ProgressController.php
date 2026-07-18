@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\StudyDay;
 use App\Models\UserDailyProgress;
 use App\Models\UserProgress;
+use App\Models\UserQuestionCompletion;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,10 @@ class ProgressController extends Controller
             'exam_label' => 'required|string',
         ]);
 
+        UserQuestionCompletion::where('exam_id', $data['exam_id'])
+            ->where('exam_label', $data['exam_label'])
+            ->delete();
+
         UserProgress::where('exam_id', $data['exam_id'])
             ->where('exam_label', $data['exam_label'])
             ->update(['completed_count' => 0]);
@@ -33,15 +38,30 @@ class ProgressController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'exam_id'    => 'required|string',
-            'exam_label' => 'required|string',
+            'exam_id'         => 'required|string',
+            'exam_label'      => 'required|string',
+            'question_number' => 'required|integer|min:1',
         ]);
+
+        try {
+            UserQuestionCompletion::create([
+                'exam_id'         => $data['exam_id'],
+                'exam_label'      => $data['exam_label'],
+                'question_number' => $data['question_number'],
+            ]);
+        } catch (UniqueConstraintViolationException) {
+            // 同じ問題は重複登録しない
+        }
+
+        $uniqueCount = UserQuestionCompletion::where('exam_id', $data['exam_id'])
+            ->where('exam_label', $data['exam_label'])
+            ->count();
 
         $progress = UserProgress::firstOrNew([
             'exam_id'    => $data['exam_id'],
             'exam_label' => $data['exam_label'],
         ]);
-        $progress->completed_count = ($progress->completed_count ?? 0) + 1;
+        $progress->completed_count = $uniqueCount;
         $progress->save();
 
         $today = now()->toDateString();

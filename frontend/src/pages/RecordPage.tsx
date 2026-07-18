@@ -17,7 +17,8 @@ const PROGRESS_COLOR_MAP: Record<ExamColor, { accent: string; soft: string }> = 
 }
 
 function ExamProgressCard({ examId, name, color, done, total }: { examId: string; name: string; color: ExamColor; done: number; total: number }) {
-  const pct = total > 0 ? Math.round(done / total * 100) : 0
+  const displayDone = total > 0 ? Math.min(done, total) : done
+  const pct = total > 0 ? Math.min(100, Math.round(displayDone / total * 100)) : 0
   const { accent, soft } = PROGRESS_COLOR_MAP[color] ?? PROGRESS_COLOR_MAP.green
   return (
     <div className="flex items-center gap-2.5 rounded-[12px] px-3.5 py-3 mb-2" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
@@ -29,7 +30,7 @@ function ExamProgressCard({ examId, name, color, done, total }: { examId: string
       <div className="flex-1">
         <div className="text-[12px] font-bold mb-0.5" style={{ color: 'var(--text)' }}>{name}</div>
         <div className="text-[10px] mb-1" style={{ color: 'var(--muted)' }}>
-          {done > 0 ? `${done}問 / ${total}問` : '未着手'}
+          {displayDone > 0 ? `${displayDone}問 / ${total}問` : '未着手'}
         </div>
         <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--surface2)' }}>
           <div className="h-full rounded-full" style={{ width: `${pct}%`, background: accent }} />
@@ -43,7 +44,7 @@ function ExamProgressCard({ examId, name, color, done, total }: { examId: string
 }
 
 export function RecordPage() {
-  const { streakDays, completedQuestions, overallProgress, examProgresses, studyDays, studyHistory, refreshData } = useStudyContext()
+  const { streakDays, completedQuestions, overallProgress, examProgresses, studyDays, studyHistory, exams, refreshData } = useStudyContext()
 
   useEffect(() => {
     refreshData()
@@ -126,12 +127,15 @@ export function RecordPage() {
               <div className="text-[10px] font-bold mb-1.5" style={{ color: 'var(--muted)' }}>
                 {selectedDate} の学習
               </div>
-              {selectedHistory.exams.map((e, i) => (
-                <div key={i} className="flex items-center justify-between text-[11px] py-0.5" style={{ color: 'var(--text)' }}>
-                  <span>{e.exam_label}</span>
-                  <span className="font-bold" style={{ color: 'var(--accent)' }}>{e.count}問</span>
-                </div>
-              ))}
+              {selectedHistory.exams.map((e, i) => {
+                const examName = exams.find(ex => ex.id === e.exam_id)?.name ?? e.exam_id
+                return (
+                  <div key={i} className="flex items-center justify-between text-[11px] py-0.5" style={{ color: 'var(--text)' }}>
+                    <span>{examName} · {e.exam_label}</span>
+                    <span className="font-bold" style={{ color: 'var(--accent)' }}>{e.count}問</span>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
