@@ -21,7 +21,8 @@ class PdfController extends Controller
 
         $fileHash = hash_file('sha256', $request->file('question_pdf')->getRealPath());
 
-        $duplicate = PdfUpload::where('file_hash', $fileHash)
+        $duplicate = PdfUpload::where('user_id', auth()->id())
+            ->where('file_hash', $fileHash)
             ->whereIn('status', ['done', 'pending', 'processing'])
             ->exists();
 
@@ -35,6 +36,7 @@ class PdfController extends Controller
             : null;
 
         $upload = PdfUpload::create([
+            'user_id'            => auth()->id(),
             'exam_id'            => $request->input('exam_id'),
             'exam_label'         => $request->input('title'),
             'question_pdf_path'  => $questionPath,
@@ -50,7 +52,8 @@ class PdfController extends Controller
 
     public function listDone(): JsonResponse
     {
-        $uploads = PdfUpload::where('status', 'done')
+        $uploads = PdfUpload::where('user_id', auth()->id())
+            ->where('status', 'done')
             ->orderBy('created_at', 'desc')
             ->get(['id', 'exam_id', 'exam_label', 'question_count', 'created_at']);
 
@@ -59,7 +62,8 @@ class PdfController extends Controller
 
     public function listProcessing(): JsonResponse
     {
-        $uploads = PdfUpload::whereIn('status', ['pending', 'processing'])
+        $uploads = PdfUpload::where('user_id', auth()->id())
+            ->whereIn('status', ['pending', 'processing'])
             ->orderBy('created_at', 'desc')
             ->get(['id', 'exam_id', 'exam_label']);
 

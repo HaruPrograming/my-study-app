@@ -10,7 +10,7 @@ class StudyDayController extends Controller
 {
     public function index(): JsonResponse
     {
-        $dates = StudyDay::orderBy('date', 'desc')->pluck('date')->map(fn ($d) => $d->toDateString())->values();
+        $dates = StudyDay::where('user_id', auth()->id())->orderBy('date', 'desc')->pluck('date')->map(fn ($d) => $d->toDateString())->values();
 
         $streakDays = 0;
         $lastStudyDate = $dates->first();
@@ -45,7 +45,7 @@ class StudyDayController extends Controller
 
     public function history(): JsonResponse
     {
-        $rows = UserDailyProgress::orderBy('date', 'desc')->get();
+        $rows = UserDailyProgress::where('user_id', auth()->id())->orderBy('date', 'desc')->get();
 
         $grouped = $rows->groupBy('date')->map(function ($items, $date) {
             return [

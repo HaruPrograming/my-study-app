@@ -17,7 +17,10 @@ class AiGenerateController extends Controller
             'exam_id' => ['required', 'string'],
         ]);
 
-        $duplicate = PdfUpload::where('exam_id', $data['exam_id'])
+        $userId = auth()->id();
+
+        $duplicate = PdfUpload::where('user_id', $userId)
+            ->where('exam_id', $data['exam_id'])
             ->where('exam_label', $data['title'])
             ->whereIn('status', ['done', 'pending', 'processing'])
             ->exists();
@@ -27,6 +30,7 @@ class AiGenerateController extends Controller
         }
 
         $upload = PdfUpload::create([
+            'user_id'           => $userId,
             'exam_id'           => $data['exam_id'],
             'exam_label'        => $data['title'],
             'question_pdf_path' => null,

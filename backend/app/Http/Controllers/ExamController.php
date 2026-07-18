@@ -16,23 +16,26 @@ class ExamController extends Controller
 {
     public function index(): JsonResponse
     {
-        return response()->json(Exam::all());
+        return response()->json(Exam::where('user_id', auth()->id())->get());
     }
 
     public function store(Request $request): JsonResponse
     {
+        $userId = auth()->id();
+
         $data = $request->validate([
             'name'       => ['required', 'string', 'max:255'],
-            'short_name' => ['nullable', 'string', 'max:50', Rule::unique('exams', 'short_name')],
+            'short_name' => ['nullable', 'string', 'max:50', Rule::unique('exams', 'short_name')->where('user_id', $userId)],
             'color'      => ['required', 'string', 'in:green,orange,blue,purple,red'],
         ]);
 
         if (empty($data['short_name'])) {
             do {
                 $data['short_name'] = Str::lower(Str::random(6));
-            } while (Exam::where('short_name', $data['short_name'])->exists());
+            } while (Exam::where('user_id', $userId)->where('short_name', $data['short_name'])->exists());
         }
 
+        $data['user_id'] = $userId;
         $exam = Exam::create($data);
 
         return response()->json($exam, 201);
@@ -40,6 +43,8 @@ class ExamController extends Controller
 
     public function destroy(Exam $exam): Response
     {
+        abort_if($exam->user_id !== auth()->id(), 403);
+
         $examId = $exam->short_name;
 
         DB::transaction(function () use ($examId, $exam) {
