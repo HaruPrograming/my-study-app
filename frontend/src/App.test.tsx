@@ -11,9 +11,9 @@ vi.mock('./context/StudyContext', () => ({
   StudyProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useStudyContext: () => ({
     streakDays: 0, completedQuestions: 0, overallProgress: 0,
-    exams: [], processingUploads: [], studyDays: new Set(), studyHistory: [],
+    exams: [], processingUploads: [], failedUploads: [], studyDays: new Set(), studyHistory: [],
     completeQuestion: vi.fn(), resetProgress: vi.fn(),
-    addStudyDay: vi.fn(), addYearEntry: vi.fn(), startProcessing: vi.fn(), refreshData: vi.fn(),
+    addStudyDay: vi.fn(), addYearEntry: vi.fn(), startProcessing: vi.fn(), dismissFailedUpload: vi.fn(), refreshData: vi.fn(),
   }),
 }))
 
