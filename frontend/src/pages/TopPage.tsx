@@ -227,7 +227,7 @@ export function TopPage() {
             )}
           </div>
         </div>
-        <div className="text-[21px] font-black text-white mb-3.5">まなびドリル</div>
+        <div className="text-[21px] font-black text-white mb-3.5">ときトレ</div>
         <div className="flex gap-2">
           <StatCard value={<><FireIcon size={20} color="#F57C2B" /> {streakDays}</>} label="日連続" />
           <StatCard value={completedQuestions} label="問完了" />

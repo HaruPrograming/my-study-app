@@ -29,7 +29,7 @@ describe('App - 認証ガード', () => {
   it('未ログインの場合は LoginPage が表示される', () => {
     vi.mocked(useAuth).mockReturnValue({ user: null, loading: false, login: vi.fn(), logout: vi.fn() })
     render(<App />)
-    expect(screen.getByText('まなびドリル')).toBeInTheDocument()
+    expect(screen.getByText('ときトレ')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Google/ })).toBeInTheDocument()
   })
 
@@ -39,7 +39,7 @@ describe('App - 認証ガード', () => {
       loading: false, login: vi.fn(), logout: vi.fn(),
     })
     render(<App />)
-    expect(screen.getByText('まなびドリル')).toBeInTheDocument()
+    expect(screen.getByText('ときトレ')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Google/ })).not.toBeInTheDocument()
   })
 })
