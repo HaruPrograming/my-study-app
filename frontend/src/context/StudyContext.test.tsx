@@ -17,7 +17,7 @@ function ProgressDisplay() {
   return (
     <>
       <div data-testid="count">{year?.completedCount ?? 0}</div>
-      <button onClick={() => completeQuestion('fe', '2024年 春期')}>complete</button>
+      <button onClick={() => completeQuestion('fe', '2024年 春期', 1)}>complete</button>
     </>
   )
 }
@@ -71,7 +71,7 @@ describe('StudyContext - progress persistence', () => {
 
     expect(mockFetch).toHaveBeenCalledWith('/api/progress', expect.objectContaining({
       method: 'POST',
-      body: JSON.stringify({ exam_id: 'fe', exam_label: '2024年 春期' }),
+      body: JSON.stringify({ exam_id: 'fe', exam_label: '2024年 春期', question_number: 1 }),
     }))
   })
 })

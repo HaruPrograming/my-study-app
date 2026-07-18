@@ -12,7 +12,7 @@ const makePdf = (name: string) =>
 
 beforeEach(() => {
   vi.clearAllMocks()
-  global.fetch = vi.fn()
+  globalThis.fetch = vi.fn()
 })
 
 describe('AddYearModal - PDFタブ', () => {
@@ -35,11 +35,11 @@ describe('AddYearModal - PDFタブ', () => {
   it('タイトルが空のときは保存ボタンを押しても fetch しない', () => {
     render(<AddYearModal examId="fe" onClose={vi.fn()} />)
     fireEvent.click(screen.getByText('保存して読み込む'))
-    expect(global.fetch).not.toHaveBeenCalled()
+    expect(globalThis.fetch).not.toHaveBeenCalled()
   })
 
   it('保存ボタンクリックで /api/pdfs/upload に FormData を送信する', async () => {
-    vi.mocked(global.fetch).mockResolvedValue({
+    vi.mocked(globalThis.fetch).mockResolvedValue({
       ok: true,
       json: async () => ({ upload_id: 1, status: 'pending' }),
     } as Response)
@@ -50,7 +50,7 @@ describe('AddYearModal - PDFタブ', () => {
     fireEvent.change(screen.getByPlaceholderText('例：2024年 春期'), { target: { value: '2024年春' } })
     fireEvent.click(screen.getByText('保存して読み込む'))
 
-    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalledWith(
       '/api/pdfs/upload',
       expect.objectContaining({ method: 'POST', credentials: 'include' }),
     ))
@@ -58,7 +58,7 @@ describe('AddYearModal - PDFタブ', () => {
 
   it('API 成功後に startProcessing が呼ばれモーダルが閉じる', async () => {
     const onClose = vi.fn()
-    vi.mocked(global.fetch).mockResolvedValue({
+    vi.mocked(globalThis.fetch).mockResolvedValue({
       ok: true,
       json: async () => ({ upload_id: 1, status: 'pending' }),
     } as Response)
@@ -78,7 +78,7 @@ describe('AddYearModal - PDFタブ', () => {
   })
 
   it('API エラー時にエラーメッセージが表示される', async () => {
-    vi.mocked(global.fetch).mockResolvedValue({
+    vi.mocked(globalThis.fetch).mockResolvedValue({
       ok: false,
       status: 422,
       json: async () => ({ message: 'エラー' }),
@@ -94,7 +94,7 @@ describe('AddYearModal - PDFタブ', () => {
   })
 
   it('PDF アップロードで 409 のとき「このPDFはすでに登録済みです」が表示される', async () => {
-    vi.mocked(global.fetch).mockResolvedValue({
+    vi.mocked(globalThis.fetch).mockResolvedValue({
       ok: false,
       status: 409,
       json: async () => ({ message: 'このPDFはすでに登録済みです' }),
@@ -125,7 +125,7 @@ describe('AddYearModal - AI生成タブ', () => {
   })
 
   it('プロンプト入力後に生成ボタンクリックで /api/ai-generate に POST する', async () => {
-    vi.mocked(global.fetch).mockResolvedValue({
+    vi.mocked(globalThis.fetch).mockResolvedValue({
       ok: true,
       json: async () => ({ upload_id: 2, status: 'pending' }),
     } as Response)
@@ -139,7 +139,7 @@ describe('AddYearModal - AI生成タブ', () => {
     })
     fireEvent.click(screen.getByText('AI で問題を生成'))
 
-    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalledWith(
       '/api/ai-generate',
       expect.objectContaining({
         method: 'POST',
@@ -150,7 +150,7 @@ describe('AddYearModal - AI生成タブ', () => {
 
   it('AI 生成 API 成功後に startProcessing が呼ばれモーダルが閉じる', async () => {
     const onClose = vi.fn()
-    vi.mocked(global.fetch).mockResolvedValue({
+    vi.mocked(globalThis.fetch).mockResolvedValue({
       ok: true,
       json: async () => ({ upload_id: 2, status: 'pending' }),
     } as Response)
@@ -172,7 +172,7 @@ describe('AddYearModal - AI生成タブ', () => {
   })
 
   it('AI 生成で 409 のとき「この年度はすでに登録済みです」が表示される', async () => {
-    vi.mocked(global.fetch).mockResolvedValue({
+    vi.mocked(globalThis.fetch).mockResolvedValue({
       ok: false,
       status: 409,
       json: async () => ({ message: 'この年度はすでに登録済みです' }),

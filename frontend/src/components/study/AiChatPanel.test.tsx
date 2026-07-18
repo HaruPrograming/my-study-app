@@ -44,7 +44,7 @@ describe('AiChatPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: /送信/ }))
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/chat', expect.objectContaining({
+      expect(fetch).toHaveBeenCalledWith('/api/chat', expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({
           message: 'もっと詳しく教えてください',
