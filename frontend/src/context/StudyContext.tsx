@@ -23,7 +23,7 @@ type StudyContextValue = {
   studyHistory: StudyHistoryItem[]
   exams: Exam[]
   processingUploads: ProcessingUpload[]
-  completeQuestion: (examId: string, examLabel: string) => void
+  completeQuestion: (examId: string, examLabel: string, questionNumber: number) => void
   resetProgress: (examId: string, examLabel: string) => void
   addStudyDay: (date: string) => void
   addYearEntry: (examId: string, entry: YearEntry) => void
@@ -189,20 +189,26 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     }).catch(() => {})
   }
 
-  const completeQuestion = (examId: string, examLabel: string) => {
-    setCompletedQuestions(n => n + 1)
+  const completeQuestion = (examId: string, examLabel: string, questionNumber: number) => {
     setExams(prev => prev.map(exam =>
       exam.id !== examId ? exam : {
         ...exam,
         years: exam.years.map(year =>
-          year.label !== examLabel ? year : { ...year, completedCount: year.completedCount + 1 }
+          year.label !== examLabel ? year : {
+            ...year,
+            completedCount: Math.min(year.totalCount, year.completedCount + 1),
+          }
         ),
       }
     ))
     fetch('/api/progress', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ exam_id: examId, exam_label: examLabel }),
+      body: JSON.stringify({ exam_id: examId, exam_label: examLabel, question_number: questionNumber }),
+    }).then(r => r.json()).then(data => {
+      if (typeof data.completed_count === 'number') {
+        setCompletedQuestions(n => n + 1)
+      }
     }).catch(() => {})
   }
 

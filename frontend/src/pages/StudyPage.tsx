@@ -56,7 +56,7 @@ export function StudyPage() {
   const resumeKey = `study_resume_${examId}_${examLabel}`
 
   const handleNext = () => {
-    completeQuestion(examId ?? '', examLabel ?? '')
+    completeQuestion(examId ?? '', examLabel ?? '', q.number)
     if (currentIndex < examQuestions.length - 1) {
       setCurrentIndex(i => i + 1)
     } else {

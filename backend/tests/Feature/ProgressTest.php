@@ -13,8 +13,9 @@ class ProgressTest extends TestCase
     public function test_進捗を記録できる(): void
     {
         $res = $this->postJson('/api/progress', [
-            'exam_id'    => 'fe',
-            'exam_label' => '2024年 春期',
+            'exam_id'         => 'fe',
+            'exam_label'      => '2024年 春期',
+            'question_number' => 1,
         ]);
 
         $res->assertCreated();
@@ -25,10 +26,30 @@ class ProgressTest extends TestCase
         ]);
     }
 
-    public function test_同じ年度に2回記録するとcompleted_countが加算される(): void
+    public function test_同じ問題番号を2回記録してもcompleted_countは1になる(): void
     {
-        $this->postJson('/api/progress', ['exam_id' => 'fe', 'exam_label' => '2024年 春期']);
-        $this->postJson('/api/progress', ['exam_id' => 'fe', 'exam_label' => '2024年 春期']);
+        $this->postJson('/api/progress', [
+            'exam_id' => 'fe', 'exam_label' => '2024年 春期', 'question_number' => 1,
+        ]);
+        $this->postJson('/api/progress', [
+            'exam_id' => 'fe', 'exam_label' => '2024年 春期', 'question_number' => 1,
+        ]);
+
+        $this->assertDatabaseHas('user_progress', [
+            'exam_id'         => 'fe',
+            'exam_label'      => '2024年 春期',
+            'completed_count' => 1,
+        ]);
+    }
+
+    public function test_異なる問題番号を記録するとcompleted_countが増える(): void
+    {
+        $this->postJson('/api/progress', [
+            'exam_id' => 'fe', 'exam_label' => '2024年 春期', 'question_number' => 1,
+        ]);
+        $this->postJson('/api/progress', [
+            'exam_id' => 'fe', 'exam_label' => '2024年 春期', 'question_number' => 2,
+        ]);
 
         $this->assertDatabaseHas('user_progress', [
             'exam_id'         => 'fe',
@@ -52,14 +73,27 @@ class ProgressTest extends TestCase
 
     public function test_exam_idが必須(): void
     {
-        $res = $this->postJson('/api/progress', ['exam_label' => '2024年 春期']);
+        $res = $this->postJson('/api/progress', [
+            'exam_label' => '2024年 春期', 'question_number' => 1,
+        ]);
 
         $res->assertUnprocessable();
     }
 
     public function test_exam_labelが必須(): void
     {
-        $res = $this->postJson('/api/progress', ['exam_id' => 'fe']);
+        $res = $this->postJson('/api/progress', [
+            'exam_id' => 'fe', 'question_number' => 1,
+        ]);
+
+        $res->assertUnprocessable();
+    }
+
+    public function test_question_numberが必須(): void
+    {
+        $res = $this->postJson('/api/progress', [
+            'exam_id' => 'fe', 'exam_label' => '2024年 春期',
+        ]);
 
         $res->assertUnprocessable();
     }
