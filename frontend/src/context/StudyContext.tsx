@@ -14,6 +14,12 @@ export type StudyHistoryItem = {
   exams: DailyHistoryEntry[]
 }
 
+export type FailedUpload = {
+  uploadId: number
+  examLabel: string
+  errorMessage: string
+}
+
 type StudyContextValue = {
   streakDays: number
   completedQuestions: number
@@ -23,11 +29,13 @@ type StudyContextValue = {
   studyHistory: StudyHistoryItem[]
   exams: Exam[]
   processingUploads: ProcessingUpload[]
+  failedUploads: FailedUpload[]
   completeQuestion: (examId: string, examLabel: string, questionNumber: number) => void
   resetProgress: (examId: string, examLabel: string) => void
   addStudyDay: (date: string) => void
   addYearEntry: (examId: string, entry: YearEntry) => void
   startProcessing: (upload: ProcessingUpload) => void
+  dismissFailedUpload: (uploadId: number) => void
   refreshData: () => void
 }
 
@@ -40,6 +48,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   const [studyHistory, setStudyHistory] = useState<StudyHistoryItem[]>([])
   const [exams, setExams] = useState<Exam[]>([])
   const [processingUploads, setProcessingUploads] = useState<ProcessingUpload[]>([])
+  const [failedUploads, setFailedUploads] = useState<FailedUpload[]>([])
 
   const refreshData = () => {
     Promise.all([
@@ -126,11 +135,11 @@ export function StudyProvider({ children }: { children: ReactNode }) {
         processingUploads.map(async u => {
           try {
             const res = await fetch(`/api/pdfs/${u.uploadId}/status`, { credentials: 'include' })
-            if (!res.ok) return { ...u, status: 'pending' as const, questionCount: 0 }
-            const data = await res.json() as { status: string; question_count: number }
-            return { ...u, status: data.status, questionCount: data.question_count }
+            if (!res.ok) return { ...u, status: 'pending' as const, questionCount: 0, errorMessage: '' }
+            const data = await res.json() as { status: string; question_count: number; error_message?: string }
+            return { ...u, status: data.status, questionCount: data.question_count, errorMessage: data.error_message ?? '' }
           } catch {
-            return { ...u, status: 'pending' as const, questionCount: 0 }
+            return { ...u, status: 'pending' as const, questionCount: 0, errorMessage: '' }
           }
         })
       )
@@ -154,6 +163,11 @@ export function StudyProvider({ children }: { children: ReactNode }) {
           ))
         } else if (r.status === 'failed') {
           failedIds.add(r.uploadId)
+          setFailedUploads(prev => [...prev, {
+            uploadId: r.uploadId,
+            examLabel: r.examLabel,
+            errorMessage: r.errorMessage || '問題の生成に失敗しました。再度お試しください。',
+          }])
         }
       })
 
@@ -228,11 +242,15 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     setProcessingUploads(prev => [...prev, upload])
   }
 
+  const dismissFailedUpload = (uploadId: number) => {
+    setFailedUploads(prev => prev.filter(u => u.uploadId !== uploadId))
+  }
+
   return (
     <StudyContext.Provider value={{
       streakDays, completedQuestions, overallProgress,
-      examProgresses, studyDays, studyHistory, exams, processingUploads,
-      completeQuestion, resetProgress, addStudyDay, addYearEntry, startProcessing, refreshData,
+      examProgresses, studyDays, studyHistory, exams, processingUploads, failedUploads,
+      completeQuestion, resetProgress, addStudyDay, addYearEntry, startProcessing, dismissFailedUpload, refreshData,
     }}>
       {children}
     </StudyContext.Provider>

@@ -79,11 +79,13 @@ vi.mock('../context/StudyContext', () => ({
     overallProgress: 20,
     exams: mockExams,
     processingUploads: [],
+    failedUploads: [],
     completeQuestion: vi.fn(),
     resetProgress: vi.fn(),
     addStudyDay: vi.fn(),
     addYearEntry: vi.fn(),
     startProcessing: vi.fn(),
+    dismissFailedUpload: vi.fn(),
     refreshData: mockRefreshData,
   }),
 }))
