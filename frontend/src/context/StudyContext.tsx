@@ -24,6 +24,7 @@ type StudyContextValue = {
   exams: Exam[]
   processingUploads: ProcessingUpload[]
   completeQuestion: (examId: string, examLabel: string) => void
+  resetProgress: (examId: string, examLabel: string) => void
   addStudyDay: (date: string) => void
   addYearEntry: (examId: string, entry: YearEntry) => void
   startProcessing: (upload: ProcessingUpload) => void
@@ -172,6 +173,22 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     { examId: 'ap', name: '応用情報技術者', color: 'orange', done: 0, total: 0 },
   ])
 
+  const resetProgress = (examId: string, examLabel: string) => {
+    setExams(prev => prev.map(exam =>
+      exam.id !== examId ? exam : {
+        ...exam,
+        years: exam.years.map(year =>
+          year.label !== examLabel ? year : { ...year, completedCount: 0 }
+        ),
+      }
+    ))
+    fetch('/api/progress', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ exam_id: examId, exam_label: examLabel }),
+    }).catch(() => {})
+  }
+
   const completeQuestion = (examId: string, examLabel: string) => {
     setCompletedQuestions(n => n + 1)
     setExams(prev => prev.map(exam =>
@@ -207,7 +224,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     <StudyContext.Provider value={{
       streakDays, completedQuestions, overallProgress,
       examProgresses, studyDays, studyHistory, exams, processingUploads,
-      completeQuestion, addStudyDay, addYearEntry, startProcessing, refreshData,
+      completeQuestion, resetProgress, addStudyDay, addYearEntry, startProcessing, refreshData,
     }}>
       {children}
     </StudyContext.Provider>

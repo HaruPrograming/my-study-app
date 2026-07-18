@@ -16,6 +16,7 @@ Route::delete('/exams/{exam}', [ExamController::class, 'destroy']);
 
 Route::get('/progress', [ProgressController::class, 'index']);
 Route::post('/progress', [ProgressController::class, 'store']);
+Route::delete('/progress', [ProgressController::class, 'reset']);
 Route::get('/study-days', [StudyDayController::class, 'index']);
 Route::get('/study-days/history', [StudyDayController::class, 'history']);
 

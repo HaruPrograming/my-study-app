@@ -16,6 +16,20 @@ class ProgressController extends Controller
         return response()->json(UserProgress::all(['exam_id', 'exam_label', 'completed_count']));
     }
 
+    public function reset(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'exam_id'    => 'required|string',
+            'exam_label' => 'required|string',
+        ]);
+
+        UserProgress::where('exam_id', $data['exam_id'])
+            ->where('exam_label', $data['exam_label'])
+            ->update(['completed_count' => 0]);
+
+        return response()->json(['status' => 'reset'], 200);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
