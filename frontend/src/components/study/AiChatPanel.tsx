@@ -45,6 +45,7 @@ export function AiChatPanel({ question }: Props) {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           message: text,
           context: {

@@ -44,11 +44,11 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   const refreshData = () => {
     Promise.all([
       fetch('/api/pdfs', { credentials: 'include' }).then(r => r.json()),
-      fetch('/api/progress').then(r => r.json()).catch(() => [] as Array<{ exam_id: string; exam_label: string; completed_count: number }>),
+      fetch('/api/progress', { credentials: 'include' }).then(r => r.json()).catch(() => [] as Array<{ exam_id: string; exam_label: string; completed_count: number }>),
       fetch('/api/pdfs/processing', { credentials: 'include' }).then(r => r.json()).catch(() => [] as Array<{ id: number; exam_id: string; exam_label: string }>),
-      fetch('/api/study-days').then(r => r.json()).catch(() => ({ dates: [] as string[], streak_days: 0, last_study_date: null })),
-      fetch('/api/study-days/history').then(r => r.json()).catch(() => [] as StudyHistoryItem[]),
-      fetch('/api/exams').then(r => r.json()).catch(() => [] as ApiExam[]),
+      fetch('/api/study-days', { credentials: 'include' }).then(r => r.json()).catch(() => ({ dates: [] as string[], streak_days: 0, last_study_date: null })),
+      fetch('/api/study-days/history', { credentials: 'include' }).then(r => r.json()).catch(() => [] as StudyHistoryItem[]),
+      fetch('/api/exams', { credentials: 'include' }).then(r => r.json()).catch(() => [] as ApiExam[]),
     ])
       .then(([uploads, progressList, processingList, studyData, historyData, examList]: [
         Array<{ id: number; exam_id: string; exam_label: string; question_count: number; created_at: string }>,
@@ -185,6 +185,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     fetch('/api/progress', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ exam_id: examId, exam_label: examLabel }),
     }).catch(() => {})
   }
@@ -204,6 +205,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     fetch('/api/progress', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ exam_id: examId, exam_label: examLabel, question_number: questionNumber }),
     }).then(r => r.json()).then(data => {
       if (typeof data.completed_count === 'number') {

@@ -66,7 +66,7 @@ describe('StudyPage', () => {
     await waitFor(() => {
       expect(screen.getByText('1問目の問題文')).toBeInTheDocument()
     })
-    expect(fetch).toHaveBeenCalledWith('/api/questions/fe/202305')
+    expect(fetch).toHaveBeenCalledWith('/api/questions/fe/202305', { credentials: 'include' })
   })
 
   it('ローディング中はスピナーを表示する', () => {
