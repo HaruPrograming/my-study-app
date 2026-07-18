@@ -1,5 +1,6 @@
 import { useState, useRef, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import { BottomNav } from '../components/layout/BottomNav'
 import { StatCard } from '../components/common/StatCard'
 import { AddYearModal } from '../components/top/AddYearModal'
@@ -162,6 +163,8 @@ export function TopPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { streakDays, completedQuestions, overallProgress, exams, resetProgress } = useStudyContext()
+  const { user, logout } = useAuth()
+  const [menuOpen, setMenuOpen] = useState(false)
   const locationState = location.state as { examId?: string } | null
   const [selectedExamId, setSelectedExamId] = useState<string | null>(locationState?.examId ?? null)
   const [selectedYearId, setSelectedYearId] = useState<string | null>(null)
@@ -197,11 +200,33 @@ export function TopPage() {
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--bg)' }}>
       {/* Hero */}
-      <div className="flex-shrink-0 px-[22px] pb-[22px] pt-1 relative overflow-hidden"
+      <div className="flex-shrink-0 px-[22px] pb-[22px] pt-4 relative overflow-hidden"
         style={{ background: 'linear-gradient(160deg,#2E9E5B,#1A6E3C)' }}>
         <div className="absolute right-[-20px] bottom-[-30px] w-[140px] h-[140px] rounded-full pointer-events-none"
           style={{ background: 'rgba(255,255,255,0.06)' }} />
-        <div className="text-[11px] mb-0.5" style={{ color: 'rgba(255,255,255,0.7)' }}>おかえり</div>
+        <div className="flex items-center justify-between mb-0.5">
+          <div className="text-[11px]" style={{ color: 'rgba(255,255,255,0.7)' }}>おかえり</div>
+          <div className="relative">
+            <button
+              onClick={() => setMenuOpen(prev => !prev)}
+              className="text-[12px] font-bold flex items-center gap-1"
+              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.9)', padding: 0 }}>
+              {user?.name ?? ''}
+              <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.6)' }}>▼</span>
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-1 rounded-[10px] overflow-hidden z-50"
+                style={{ background: '#fff', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', minWidth: '100px' }}>
+                <button
+                  onClick={() => { setMenuOpen(false); logout() }}
+                  className="w-full text-left px-4 py-2.5 text-[13px]"
+                  style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer' }}>
+                  ログアウト
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
         <div className="text-[21px] font-black text-white mb-3.5">まなびドリル</div>
         <div className="flex gap-2">
           <StatCard value={<><FireIcon size={20} color="#F57C2B" /> {streakDays}</>} label="日連続" />

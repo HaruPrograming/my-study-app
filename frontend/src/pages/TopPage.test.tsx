@@ -10,6 +10,11 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => mockNavigate }
 })
 
+const mockLogout = vi.fn()
+vi.mock('../contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 1, name: 'テスト', email: 'test@example.com', avatar: null }, loading: false, login: vi.fn(), logout: mockLogout }),
+}))
+
 const mockExams = [
   {
     id: 'fe',
@@ -98,6 +103,32 @@ function renderTopPageWithState(state: Record<string, unknown>) {
     </MemoryRouter>
   )
 }
+
+describe('TopPage - ログアウト', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('ヒーローにユーザー名が表示される', () => {
+    renderTopPage()
+    expect(screen.getByText('テスト')).toBeInTheDocument()
+  })
+
+  it('ユーザー名をクリックするとログアウトメニューが表示される', async () => {
+    const user = userEvent.setup()
+    renderTopPage()
+    await user.click(screen.getByText('テスト'))
+    expect(screen.getByRole('button', { name: /ログアウト/ })).toBeInTheDocument()
+  })
+
+  it('ログアウトボタンをクリックすると logout が呼ばれる', async () => {
+    const user = userEvent.setup()
+    renderTopPage()
+    await user.click(screen.getByText('テスト'))
+    await user.click(screen.getByRole('button', { name: /ログアウト/ }))
+    expect(mockLogout).toHaveBeenCalledTimes(1)
+  })
+})
 
 describe('TopPage - 続きから始めるボタン', () => {
   beforeEach(() => {
