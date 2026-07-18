@@ -268,6 +268,61 @@ describe('TopPage - インプット/アウトプットモード切り替え', ()
   })
 })
 
+describe('TopPage - 資格カード視認性改善 (US67)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  it('「続きから」押下後に exam_study_order の先頭に examId が保存される', async () => {
+    const user = userEvent.setup()
+    renderTopPage()
+    await user.click(screen.getByText('2023年度春期'))
+    await user.click(screen.getByRole('button', { name: /続きから/ }))
+    const order = JSON.parse(localStorage.getItem('exam_study_order') ?? '[]')
+    expect(order[0]).toBe('fe')
+  })
+
+  it('「最初から（年度カード内）」押下後にも exam_study_order の先頭に examId が保存される', async () => {
+    const user = userEvent.setup()
+    renderTopPage()
+    await user.click(screen.getByText('2023年度春期'))
+    await user.click(screen.getAllByRole('button', { name: /最初から/ })[0])
+    const order = JSON.parse(localStorage.getItem('exam_study_order') ?? '[]')
+    expect(order[0]).toBe('fe')
+  })
+
+  it('exam_study_order=["ip","fe"] の場合は IP が先頭に表示される', () => {
+    localStorage.setItem('exam_study_order', JSON.stringify(['ip', 'fe']))
+    renderTopPage()
+    const ipEl = screen.getByText('IP')
+    const feEl = screen.getByText('FE')
+    expect(ipEl.compareDocumentPosition(feEl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('exam_study_order=["fe","ip"] の場合は FE が先頭に表示される（最新順）', () => {
+    localStorage.setItem('exam_study_order', JSON.stringify(['fe', 'ip']))
+    renderTopPage()
+    const feEl = screen.getByText('FE')
+    const ipEl = screen.getByText('IP')
+    expect(feEl.compareDocumentPosition(ipEl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('選択中の資格カードに aria-selected="true" が付く', async () => {
+    const user = userEvent.setup()
+    renderTopPage()
+    await user.click(screen.getByText('IP'))
+    expect(screen.getByText('IP').closest('[aria-selected]')).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('未選択の資格カードには aria-selected="false" が付く', async () => {
+    const user = userEvent.setup()
+    renderTopPage()
+    await user.click(screen.getByText('IP'))
+    expect(screen.getByText('FE').closest('[aria-selected]')).toHaveAttribute('aria-selected', 'false')
+  })
+})
+
 describe('TopPage - 資格を追加', () => {
   beforeEach(() => {
     vi.clearAllMocks()
