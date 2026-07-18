@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { BottomNav } from '../components/layout/BottomNav'
 import { StatCard } from '../components/common/StatCard'
@@ -36,7 +36,12 @@ function ExamCard({ exam, selected, onClick, onLongPress }: { exam: Exam; select
 
   const cardStyle = exam.isLocked
     ? { background: 'var(--surface)', border: '1.5px solid var(--border)' }
-    : { background: gradient, boxShadow: selected ? `0 0 0 3px rgba(255,255,255,0.6),0 4px 18px ${glow}` : `0 4px 14px ${glow}` }
+    : {
+        background: gradient,
+        boxShadow: selected
+          ? `0 6px 18px rgba(0,0,0,0.22), 0 8px 24px ${glow}`
+          : `0 4px 14px ${glow}`,
+      }
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -49,6 +54,7 @@ function ExamCard({ exam, selected, onClick, onLongPress }: { exam: Exam; select
 
   return (
     <div
+      aria-selected={selected}
       onClick={onClick}
       onMouseDown={handlePressStart}
       onMouseUp={handlePressEnd}
@@ -164,9 +170,29 @@ export function TopPage() {
   const [addExamModalOpen, setAddExamModalOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null)
 
-  const activeExamId = selectedExamId ?? exams[0]?.id ?? 'fe'
+  const updateStudyOrder = (examId: string) => {
+    const raw = localStorage.getItem('exam_study_order')
+    const order: string[] = raw ? JSON.parse(raw) : []
+    localStorage.setItem('exam_study_order', JSON.stringify([examId, ...order.filter(id => id !== examId)]))
+  }
 
-  const selectedExam = exams.find(e => e.id === activeExamId) ?? exams[0]
+  const sortedExams = useMemo(() => {
+    const raw = localStorage.getItem('exam_study_order')
+    if (!raw) return exams
+    const order: string[] = JSON.parse(raw)
+    return [...exams].sort((a, b) => {
+      const ai = order.indexOf(a.id)
+      const bi = order.indexOf(b.id)
+      if (ai === -1 && bi === -1) return 0
+      if (ai === -1) return 1
+      if (bi === -1) return -1
+      return ai - bi
+    })
+  }, [exams])
+
+  const activeExamId = selectedExamId ?? sortedExams[0]?.id ?? 'fe'
+
+  const selectedExam = sortedExams.find(e => e.id === activeExamId) ?? sortedExams[0]
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--bg)' }}>
@@ -188,7 +214,7 @@ export function TopPage() {
       <div className="flex-1 overflow-y-auto px-[18px] pt-[18px] pb-[110px]">
         <div className="text-[10px] font-extrabold tracking-[.08em] mb-2" style={{ color: 'var(--muted)' }}>資格を選ぶ</div>
         <div className="flex gap-2 mb-[22px] overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', marginLeft: '-18px', marginRight: '-18px', paddingLeft: '18px', paddingRight: '18px' }}>
-          {exams.map(exam => (
+          {sortedExams.map(exam => (
             <div key={exam.id} className="flex-shrink-0" style={{ width: 'calc(33vw - 16px)', minWidth: '90px', maxWidth: '130px' }}>
               <ExamCard exam={exam} selected={activeExamId === exam.id}
                 onClick={() => { if (!exam.isLocked) { setSelectedExamId(exam.id); setSelectedYearId(null) } }}
@@ -214,10 +240,12 @@ export function TopPage() {
               onSelect={() => setSelectedYearId(prev => prev === year.id ? null : year.id)}
               onStart={() => {
                   localStorage.removeItem(`study_resume_${activeExamId}_${year.label}`)
+                  updateStudyOrder(activeExamId)
                   resetProgress(activeExamId, year.label)
                   navigate(`/study/${activeExamId}/${encodeURIComponent(year.label)}?mode=${studyMode}`)
                 }}
               onResume={() => {
+                  updateStudyOrder(activeExamId)
                   const saved = localStorage.getItem(`study_resume_${activeExamId}_${year.label}`)
                   const idx = saved !== null ? saved : year.completedCount
                   navigate(`/study/${activeExamId}/${encodeURIComponent(year.label)}?startIndex=${idx}&mode=${studyMode}`)
