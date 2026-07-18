@@ -75,8 +75,9 @@ function ExamCard({ exam, selected, onClick, onLongPress }: { exam: Exam; select
   )
 }
 
-function YearCard({ year, selected, onSelect, onStart, onResume, hasResume }: {
+function YearCard({ year, selected, onSelect, onStart, onResume, hasResume, studyMode, onModeChange }: {
   year: YearEntry; selected: boolean; onSelect: () => void; onStart: () => void; onResume: () => void; hasResume?: boolean
+  studyMode: 'input' | 'output'; onModeChange: (mode: 'input' | 'output') => void
 }) {
   const pct = year.totalCount > 0 ? Math.min(100, Math.round(year.completedCount / year.totalCount * 100)) : 0
 
@@ -108,19 +109,43 @@ function YearCard({ year, selected, onSelect, onStart, onResume, hasResume }: {
         </div>
       </div>
       {selected && (
-        <div className="flex gap-2 mt-2.5">
-          {year.completedCount > 0 && (
-            <button onClick={e => { e.stopPropagation(); onStart() }}
-              className="flex-1 h-[42px] rounded-[9px] text-[13px] font-bold"
-              style={{ background: 'var(--surface)', border: '1.5px solid var(--accent)', color: 'var(--accent)' }}>
-              最初から →
+        <div className="flex flex-col gap-2 mt-2.5">
+          {/* モード切り替えトグル */}
+          <div className="flex gap-1 p-1 rounded-[10px]" style={{ background: 'var(--surface2)' }}>
+            <button
+              aria-pressed={studyMode === 'input'}
+              onClick={e => { e.stopPropagation(); onModeChange('input') }}
+              className="flex-1 h-7 rounded-[8px] text-[11px] font-bold"
+              style={studyMode === 'input'
+                ? { background: 'var(--accent)', color: '#fff', border: 'none' }
+                : { background: 'transparent', color: 'var(--muted)', border: 'none' }}>
+              インプット
             </button>
-          )}
-          <button onClick={e => { e.stopPropagation(); (hasResume || (year.completedCount > 0 && year.completedCount < year.totalCount)) ? onResume() : onStart() }}
-            className="flex-[2] h-[42px] rounded-[9px] text-[13px] font-bold text-white"
-            style={{ background: 'var(--accent)', boxShadow: '0 2px 8px var(--accent-glow)' }}>
-            {hasResume ? '続きから →' : year.completedCount >= year.totalCount && year.totalCount > 0 ? 'もう一度 →' : year.completedCount > 0 ? '続きから →' : '最初から →'}
-          </button>
+            <button
+              aria-pressed={studyMode === 'output'}
+              onClick={e => { e.stopPropagation(); onModeChange('output') }}
+              className="flex-1 h-7 rounded-[8px] text-[11px] font-bold"
+              style={studyMode === 'output'
+                ? { background: 'var(--accent)', color: '#fff', border: 'none' }
+                : { background: 'transparent', color: 'var(--muted)', border: 'none' }}>
+              アウトプット
+            </button>
+          </div>
+          {/* アクションボタン */}
+          <div className="flex gap-2">
+            {year.completedCount > 0 && (
+              <button onClick={e => { e.stopPropagation(); onStart() }}
+                className="flex-1 h-[42px] rounded-[9px] text-[13px] font-bold"
+                style={{ background: 'var(--surface)', border: '1.5px solid var(--accent)', color: 'var(--accent)' }}>
+                最初から →
+              </button>
+            )}
+            <button onClick={e => { e.stopPropagation(); (hasResume || (year.completedCount > 0 && year.completedCount < year.totalCount)) ? onResume() : onStart() }}
+              className="flex-[2] h-[42px] rounded-[9px] text-[13px] font-bold text-white"
+              style={{ background: 'var(--accent)', boxShadow: '0 2px 8px var(--accent-glow)' }}>
+              {hasResume ? '続きから →' : year.completedCount >= year.totalCount && year.totalCount > 0 ? 'もう一度 →' : year.completedCount > 0 ? '続きから →' : '最初から →'}
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -134,6 +159,7 @@ export function TopPage() {
   const locationState = location.state as { examId?: string } | null
   const [selectedExamId, setSelectedExamId] = useState<string | null>(locationState?.examId ?? null)
   const [selectedYearId, setSelectedYearId] = useState<string | null>(null)
+  const [studyMode, setStudyMode] = useState<'input' | 'output'>('input')
   const [modalOpen, setModalOpen] = useState(false)
   const [addExamModalOpen, setAddExamModalOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null)
@@ -189,14 +215,16 @@ export function TopPage() {
               onStart={() => {
                   localStorage.removeItem(`study_resume_${activeExamId}_${year.label}`)
                   resetProgress(activeExamId, year.label)
-                  navigate(`/study/${activeExamId}/${encodeURIComponent(year.label)}`)
+                  navigate(`/study/${activeExamId}/${encodeURIComponent(year.label)}?mode=${studyMode}`)
                 }}
               onResume={() => {
                   const saved = localStorage.getItem(`study_resume_${activeExamId}_${year.label}`)
                   const idx = saved !== null ? saved : year.completedCount
-                  navigate(`/study/${activeExamId}/${encodeURIComponent(year.label)}?startIndex=${idx}`)
+                  navigate(`/study/${activeExamId}/${encodeURIComponent(year.label)}?startIndex=${idx}&mode=${studyMode}`)
                 }}
-              hasResume={localStorage.getItem(`study_resume_${activeExamId}_${year.label}`) !== null} />
+              hasResume={localStorage.getItem(`study_resume_${activeExamId}_${year.label}`) !== null}
+              studyMode={studyMode}
+              onModeChange={setStudyMode} />
           ))}
           <button onClick={() => setModalOpen(true)}
             className="flex items-center justify-center gap-1.5 w-full rounded-[12px] py-2.5 text-[12px] font-bold mt-1.5 cursor-pointer"
