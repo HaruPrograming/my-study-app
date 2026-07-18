@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\StudyDay;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -10,11 +11,20 @@ class StudyDaysTest extends TestCase
 {
     use RefreshDatabase;
 
+    private User $user;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->user = User::factory()->create();
+        $this->actingAs($this->user);
+    }
+
     public function test_学習日一覧と連続日数を取得できる(): void
     {
-        StudyDay::create(['date' => '2026-07-15']);
-        StudyDay::create(['date' => '2026-07-16']);
-        StudyDay::create(['date' => '2026-07-17']);
+        StudyDay::create(['user_id' => $this->user->id, 'date' => '2026-07-15']);
+        StudyDay::create(['user_id' => $this->user->id, 'date' => '2026-07-16']);
+        StudyDay::create(['user_id' => $this->user->id, 'date' => '2026-07-17']);
 
         $res = $this->getJson('/api/study-days');
 
@@ -28,9 +38,9 @@ class StudyDaysTest extends TestCase
         $yesterday = now()->subDay()->toDateString();
         $twoDaysAgo = now()->subDays(2)->toDateString();
 
-        StudyDay::create(['date' => $twoDaysAgo]);
-        StudyDay::create(['date' => $yesterday]);
-        StudyDay::create(['date' => $today]);
+        StudyDay::create(['user_id' => $this->user->id, 'date' => $twoDaysAgo]);
+        StudyDay::create(['user_id' => $this->user->id, 'date' => $yesterday]);
+        StudyDay::create(['user_id' => $this->user->id, 'date' => $today]);
 
         $res = $this->getJson('/api/study-days');
 
@@ -42,8 +52,8 @@ class StudyDaysTest extends TestCase
         $today = now()->toDateString();
         $threeDaysAgo = now()->subDays(3)->toDateString();
 
-        StudyDay::create(['date' => $threeDaysAgo]);
-        StudyDay::create(['date' => $today]);
+        StudyDay::create(['user_id' => $this->user->id, 'date' => $threeDaysAgo]);
+        StudyDay::create(['user_id' => $this->user->id, 'date' => $today]);
 
         $res = $this->getJson('/api/study-days');
 

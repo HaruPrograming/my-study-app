@@ -39,6 +39,7 @@ export function AddExamModal({ onClose }: Props) {
       const res = await fetch('/api/exams', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(body),
       })
       if (!res.ok) {

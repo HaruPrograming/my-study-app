@@ -14,21 +14,26 @@ class ProgressController extends Controller
 {
     public function index(): JsonResponse
     {
-        return response()->json(UserProgress::all(['exam_id', 'exam_label', 'completed_count']));
+        return response()->json(
+            UserProgress::where('user_id', auth()->id())->get(['exam_id', 'exam_label', 'completed_count'])
+        );
     }
 
     public function reset(Request $request): JsonResponse
     {
+        $userId = auth()->id();
         $data = $request->validate([
             'exam_id'    => 'required|string',
             'exam_label' => 'required|string',
         ]);
 
-        UserQuestionCompletion::where('exam_id', $data['exam_id'])
+        UserQuestionCompletion::where('user_id', $userId)
+            ->where('exam_id', $data['exam_id'])
             ->where('exam_label', $data['exam_label'])
             ->delete();
 
-        UserProgress::where('exam_id', $data['exam_id'])
+        UserProgress::where('user_id', $userId)
+            ->where('exam_id', $data['exam_id'])
             ->where('exam_label', $data['exam_label'])
             ->update(['completed_count' => 0]);
 
@@ -37,6 +42,7 @@ class ProgressController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $userId = auth()->id();
         $data = $request->validate([
             'exam_id'         => 'required|string',
             'exam_label'      => 'required|string',
@@ -45,6 +51,7 @@ class ProgressController extends Controller
 
         try {
             UserQuestionCompletion::create([
+                'user_id'         => $userId,
                 'exam_id'         => $data['exam_id'],
                 'exam_label'      => $data['exam_label'],
                 'question_number' => $data['question_number'],
@@ -53,11 +60,13 @@ class ProgressController extends Controller
             // 同じ問題は重複登録しない
         }
 
-        $uniqueCount = UserQuestionCompletion::where('exam_id', $data['exam_id'])
+        $uniqueCount = UserQuestionCompletion::where('user_id', $userId)
+            ->where('exam_id', $data['exam_id'])
             ->where('exam_label', $data['exam_label'])
             ->count();
 
         $progress = UserProgress::firstOrNew([
+            'user_id'    => $userId,
             'exam_id'    => $data['exam_id'],
             'exam_label' => $data['exam_label'],
         ]);
@@ -67,12 +76,13 @@ class ProgressController extends Controller
         $today = now()->toDateString();
 
         try {
-            StudyDay::firstOrCreate(['date' => $today]);
+            StudyDay::firstOrCreate(['user_id' => $userId, 'date' => $today]);
         } catch (UniqueConstraintViolationException) {
             // 同日レコードが既存のため無視
         }
 
         $affected = \DB::table('user_daily_progress')
+            ->where('user_id', $userId)
             ->where('date', $today)
             ->where('exam_id', $data['exam_id'])
             ->where('exam_label', $data['exam_label'])
@@ -81,6 +91,7 @@ class ProgressController extends Controller
         if (!$affected) {
             try {
                 UserDailyProgress::create([
+                    'user_id'    => $userId,
                     'date'       => $today,
                     'exam_id'    => $data['exam_id'],
                     'exam_label' => $data['exam_label'],
@@ -88,6 +99,7 @@ class ProgressController extends Controller
                 ]);
             } catch (UniqueConstraintViolationException) {
                 \DB::table('user_daily_progress')
+                    ->where('user_id', $userId)
                     ->where('date', $today)
                     ->where('exam_id', $data['exam_id'])
                     ->where('exam_label', $data['exam_label'])

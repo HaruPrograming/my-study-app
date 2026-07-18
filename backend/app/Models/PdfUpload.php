@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class PdfUpload extends Model
 {
     protected $fillable = [
+        'user_id',
         'exam_id',
         'exam_label',
         'question_pdf_path',

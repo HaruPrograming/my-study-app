@@ -33,7 +33,7 @@ export function StudyPage() {
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch(`/api/questions/${examId}/${examLabel}`)
+    fetch(`/api/questions/${examId}/${examLabel}`, { credentials: 'include' })
       .then(res => {
         if (!res.ok) throw new Error('fetch failed')
         return res.json()

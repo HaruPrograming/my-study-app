@@ -4,12 +4,19 @@ namespace Tests\Feature;
 
 use App\Models\Choice;
 use App\Models\Question;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class QuestionApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->actingAs(User::factory()->create());
+    }
 
     private function createQuestion(string $examId, int $number, array $choices = []): Question
     {

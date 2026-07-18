@@ -62,6 +62,7 @@ export function AddYearModal({ examId, onClose }: Props) {
       const res = await fetch('/api/ai-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ prompt: aiPrompt, title, exam_id: examId }),
       })
       const data = await res.json()

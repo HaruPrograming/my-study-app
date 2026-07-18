@@ -16,7 +16,7 @@ export function DeleteExamModal({ examId, examName, onClose }: Props) {
     setDeleting(true)
     setError('')
     try {
-      const res = await fetch(`/api/exams/${examId}`, { method: 'DELETE' })
+      const res = await fetch(`/api/exams/${examId}`, { method: 'DELETE', credentials: 'include' })
       if (!res.ok) throw new Error('削除に失敗しました。')
       refreshData()
       onClose()
