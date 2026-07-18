@@ -152,6 +152,7 @@ export function AddYearModal({ examId, onClose }: Props) {
                 type="number"
                 value={questionCount}
                 onChange={e => setQuestionCount(Math.max(1, Math.min(100, Number(e.target.value))))}
+                onFocus={e => e.target.select()}
                 min={1}
                 max={100}
                 className="w-24 h-10 rounded-[10px] px-3 text-[13px] outline-none text-center"
