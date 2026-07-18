@@ -151,7 +151,9 @@ export function AddYearModal({ examId, onClose }: Props) {
               <input
                 type="number"
                 value={questionCount}
-                onChange={e => setQuestionCount(Number(e.target.value))}
+                onChange={e => setQuestionCount(Math.max(1, Math.min(100, Number(e.target.value))))}
+                min={1}
+                max={100}
                 className="w-24 h-10 rounded-[10px] px-3 text-[13px] outline-none text-center"
                 style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }}
               />
