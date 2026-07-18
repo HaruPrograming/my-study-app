@@ -12,6 +12,7 @@ export function AddYearModal({ examId, onClose }: Props) {
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [answerFile, setAnswerFile] = useState<File | null>(null)
   const [aiPrompt, setAiPrompt] = useState('')
+  const [questionCount, setQuestionCount] = useState(20)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const overlayRef = useRef<HTMLDivElement>(null)
@@ -59,11 +60,12 @@ export function AddYearModal({ examId, onClose }: Props) {
     setError('')
 
     try {
+      const prompt = `${aiPrompt}\n\n（${questionCount}問生成してください）`
       const res = await fetch('/api/ai-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ prompt: aiPrompt, title, exam_id: examId }),
+        body: JSON.stringify({ prompt, title, exam_id: examId }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error((data.message as string) ?? 'AI 生成に失敗しました。')
@@ -144,11 +146,24 @@ export function AddYearModal({ examId, onClose }: Props) {
           </>
         ) : (
           <>
+            <div className="text-[10px] font-bold tracking-wider mb-1" style={{ color: 'var(--muted)' }}>問題数</div>
+            <div className="flex items-center gap-2 mb-3">
+              <input
+                type="number"
+                value={questionCount}
+                onChange={e => setQuestionCount(Math.max(1, Math.min(100, Number(e.target.value))))}
+                min={1}
+                max={100}
+                className="w-24 h-10 rounded-[10px] px-3 text-[13px] outline-none text-center"
+                style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }}
+              />
+              <span className="text-[13px]" style={{ color: 'var(--muted)' }}>問（最大100問）</span>
+            </div>
             <div className="text-[10px] font-bold tracking-wider mb-1" style={{ color: 'var(--muted)' }}>生成指示</div>
             <textarea
               value={aiPrompt}
               onChange={e => setAiPrompt(e.target.value)}
-              placeholder="例：基本情報技術者試験 2024年春期 レベルの問題を20問生成してください"
+              placeholder="例：基本情報技術者試験 2024年春期 レベルの問題を生成してください"
               rows={4}
               className="w-full rounded-[10px] px-3 py-2.5 text-[13px] mb-3 outline-none resize-none"
               style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }}
