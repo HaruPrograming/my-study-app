@@ -75,6 +75,7 @@ vi.mock('../context/StudyContext', () => ({
     exams: mockExams,
     processingUploads: [],
     completeQuestion: vi.fn(),
+    resetProgress: vi.fn(),
     addStudyDay: vi.fn(),
     addYearEntry: vi.fn(),
     startProcessing: vi.fn(),
