@@ -223,6 +223,149 @@ describe('StudyPage', () => {
     expect(screen.getByPlaceholderText(/質問を入力/)).toBeInTheDocument()
   })
 
+  it('インプットモード（?mode=input）では選択肢が正解スタイルで即時表示される', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([mockQuestion1]),
+    } as Response))
+
+    renderStudyPage('fe', '202305', '?mode=input')
+
+    await waitFor(() => {
+      expect(screen.getByText('1問目の問題文')).toBeInTheDocument()
+    })
+
+    // 正解選択肢（ア）が正解スタイルで表示される（data-correct 属性で確認）
+    expect(screen.getByTestId('choice-ア')).toHaveAttribute('data-correct', 'true')
+  })
+
+  it('アウトプットモード（?mode=output）では選択肢の正解スタイルが非表示', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([mockQuestion1]),
+    } as Response))
+
+    renderStudyPage('fe', '202305', '?mode=output')
+
+    await waitFor(() => {
+      expect(screen.getByText('1問目の問題文')).toBeInTheDocument()
+    })
+
+    // 選択前は正解スタイルなし
+    expect(screen.getByTestId('choice-ア')).toHaveAttribute('data-correct', 'false')
+    expect(screen.getByTestId('choice-イ')).toHaveAttribute('data-correct', 'false')
+  })
+
+  it('アウトプットモードでは「次へ」ボタンが選択前は非活性', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([mockQuestion1]),
+    } as Response))
+
+    renderStudyPage('fe', '202305', '?mode=output')
+
+    await waitFor(() => {
+      expect(screen.getByText('1問目の問題文')).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('button', { name: /次へ/ })).toBeDisabled()
+  })
+
+  it('アウトプットモードで選択肢をクリックすると「次へ」が活性化する', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([mockQuestion1]),
+    } as Response))
+
+    renderStudyPage('fe', '202305', '?mode=output')
+
+    await waitFor(() => {
+      expect(screen.getByText('1問目の問題文')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByTestId('choice-ア'))
+
+    expect(screen.getByRole('button', { name: /次へ/ })).not.toBeDisabled()
+  })
+
+  it('アウトプットモードで正解をクリックすると正解フィードバックが表示される', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([mockQuestion1]),
+    } as Response))
+
+    renderStudyPage('fe', '202305', '?mode=output')
+
+    await waitFor(() => {
+      expect(screen.getByText('1問目の問題文')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByTestId('choice-ア'))
+
+    expect(screen.getByTestId('choice-ア')).toHaveAttribute('data-correct', 'true')
+  })
+
+  it('アウトプットモードで不正解をクリックすると不正解フィードバック＋正解が表示される', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([mockQuestion1]),
+    } as Response))
+
+    renderStudyPage('fe', '202305', '?mode=output')
+
+    await waitFor(() => {
+      expect(screen.getByText('1問目の問題文')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByTestId('choice-イ'))
+
+    // 不正解選択肢は data-wrong=true、正解は data-correct=true
+    expect(screen.getByTestId('choice-イ')).toHaveAttribute('data-wrong', 'true')
+    expect(screen.getByTestId('choice-ア')).toHaveAttribute('data-correct', 'true')
+  })
+
+  it('学習中にインプット/アウトプットトグルが表示される', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([mockQuestion1]),
+    } as Response))
+
+    renderStudyPage('fe', '202305', '?mode=input')
+
+    await waitFor(() => {
+      expect(screen.getByText('1問目の問題文')).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('button', { name: 'インプット' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'アウトプット' })).toBeInTheDocument()
+  })
+
+  it('学習中にアウトプット→インプット切替で正解が即時表示される', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([mockQuestion1]),
+    } as Response))
+
+    renderStudyPage('fe', '202305', '?mode=output')
+
+    await waitFor(() => {
+      expect(screen.getByText('1問目の問題文')).toBeInTheDocument()
+    })
+
+    // アウトプットモードでは正解スタイル非表示
+    expect(screen.getByTestId('choice-ア')).toHaveAttribute('data-correct', 'false')
+
+    // インプットに切り替え
+    await user.click(screen.getByRole('button', { name: 'インプット' }))
+
+    // 正解が即時表示される
+    expect(screen.getByTestId('choice-ア')).toHaveAttribute('data-correct', 'true')
+  })
+
   it('「ポイント・解説」タブをクリックするとポイントが表示される', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,

@@ -206,6 +206,68 @@ describe('TopPage - 100%完了後の遷移', () => {
   })
 })
 
+describe('TopPage - インプット/アウトプットモード切り替え', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('年度カードを選択するとインプット/アウトプットトグルが表示される', async () => {
+    const user = userEvent.setup()
+    renderTopPage()
+
+    await user.click(screen.getByText('2023年度春期'))
+
+    expect(screen.getByRole('button', { name: 'インプット' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'アウトプット' })).toBeInTheDocument()
+  })
+
+  it('デフォルトではインプットが選択されている', async () => {
+    const user = userEvent.setup()
+    renderTopPage()
+
+    await user.click(screen.getByText('2023年度春期'))
+
+    const inputBtn = screen.getByRole('button', { name: 'インプット' })
+    expect(inputBtn).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('アウトプットをクリックするとアウトプットが選択状態になる', async () => {
+    const user = userEvent.setup()
+    renderTopPage()
+
+    await user.click(screen.getByText('2023年度春期'))
+    await user.click(screen.getByRole('button', { name: 'アウトプット' }))
+
+    expect(screen.getByRole('button', { name: 'アウトプット' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'インプット' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('インプットモードで開始すると ?mode=input が URL に付与される', async () => {
+    const user = userEvent.setup()
+    renderTopPage()
+
+    await user.click(screen.getByText('2023年度春期'))
+    await user.click(screen.getByRole('button', { name: /続きから/ }))
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.stringContaining('mode=input')
+    )
+  })
+
+  it('アウトプットモードで開始すると ?mode=output が URL に付与される', async () => {
+    const user = userEvent.setup()
+    renderTopPage()
+
+    await user.click(screen.getByText('2023年度春期'))
+    await user.click(screen.getByRole('button', { name: 'アウトプット' }))
+    await user.click(screen.getByRole('button', { name: /続きから/ }))
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.stringContaining('mode=output')
+    )
+  })
+})
+
 describe('TopPage - 資格を追加', () => {
   beforeEach(() => {
     vi.clearAllMocks()
