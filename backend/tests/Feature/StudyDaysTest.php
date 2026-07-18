@@ -62,8 +62,9 @@ class StudyDaysTest extends TestCase
         $today = now()->toDateString();
 
         $this->postJson('/api/progress', [
-            'exam_id'    => 'fe',
-            'exam_label' => '2024年 春期',
+            'exam_id'         => 'fe',
+            'exam_label'      => '2024年 春期',
+            'question_number' => 1,
         ]);
 
         $this->assertTrue(StudyDay::whereDate('date', $today)->exists());
@@ -71,8 +72,8 @@ class StudyDaysTest extends TestCase
 
     public function test_同日に複数回進捗保存しても学習日は1件のみ(): void
     {
-        $this->postJson('/api/progress', ['exam_id' => 'fe', 'exam_label' => '2024年 春期']);
-        $this->postJson('/api/progress', ['exam_id' => 'fe', 'exam_label' => '2024年 春期']);
+        $this->postJson('/api/progress', ['exam_id' => 'fe', 'exam_label' => '2024年 春期', 'question_number' => 1]);
+        $this->postJson('/api/progress', ['exam_id' => 'fe', 'exam_label' => '2024年 春期', 'question_number' => 1]);
 
         $this->assertSame(1, StudyDay::count());
     }
