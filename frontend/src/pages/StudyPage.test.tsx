@@ -5,6 +5,10 @@ import { StudyPage } from './StudyPage'
 import { StudyProvider } from '../context/StudyContext'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 
+vi.mock('../context/TutorialContext', () => ({
+  useTutorial: () => ({ tutorialStep: null, setTutorialStep: vi.fn() }),
+}))
+
 const mockQuestion1 = {
   id: 'fe-1',
   examId: 'fe',

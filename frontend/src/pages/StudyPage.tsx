@@ -1,10 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import type { CSSProperties } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ChartIcon, PauseIcon, CheckIcon, TargetIcon, BoltIcon, BulbIcon } from '../components/icons'
 import { ProgressBar } from '../components/common/ProgressBar'
 import { IllustBlock } from '../components/study/IllustBlock'
 import { AiChatPanel } from '../components/study/AiChatPanel'
 import { useStudyContext } from '../context/StudyContext'
+import { useTutorial } from '../context/TutorialContext'
+import { TutorialOverlay } from '../components/tutorial/TutorialOverlay'
+import type { TutorialStep } from '../components/tutorial/TutorialOverlay'
+import { demoQuestions } from '../data/demoQuestions'
 import type { Question, Point } from '../types'
 
 type StudyTab = 'point' | 'ai'
@@ -23,6 +28,8 @@ export function StudyPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { completeQuestion } = useStudyContext()
+  const { tutorialStep, setTutorialStep } = useTutorial()
+  const isTutorial = searchParams.get('tutorial') === 'true' || examId === 'tutorial'
   const [currentIndex, setCurrentIndex] = useState(Number(searchParams.get('startIndex') ?? 0))
   const [examQuestions, setExamQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(true)
@@ -31,8 +38,25 @@ export function StudyPage() {
     searchParams.get('mode') === 'output' ? 'output' : 'input'
   )
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null)
+  const [highlightStyle, setHighlightStyle] = useState<CSSProperties | undefined>()
+  const modeSwitchRef = useRef<HTMLDivElement>(null)
+  const contentAreaRef = useRef<HTMLDivElement>(null)
+  const questionAreaRef = useRef<HTMLDivElement>(null)
+  const pointsSectionRef = useRef<HTMLDivElement>(null)
+  const aiTabRef = useRef<HTMLButtonElement>(null)
+
+  const getRect = (el: HTMLElement | null): CSSProperties | undefined => {
+    if (!el) return undefined
+    const r = el.getBoundingClientRect()
+    return { position: 'fixed', top: r.top - 4, left: r.left - 4, width: r.width + 8, height: r.height + 8 }
+  }
 
   useEffect(() => {
+    if (isTutorial) {
+      setExamQuestions(demoQuestions)
+      setLoading(false)
+      return
+    }
     fetch(`/api/questions/${examId}/${examLabel}`, { credentials: 'include' })
       .then(res => {
         if (!res.ok) throw new Error('fetch failed')
@@ -41,7 +65,39 @@ export function StudyPage() {
       .then((data: Question[]) => setExamQuestions(data))
       .catch(() => setExamQuestions([]))
       .finally(() => setLoading(false))
-  }, [examId, examLabel])
+  }, [examId, examLabel, isTutorial])
+
+  // チュートリアルstep6-9のモード・タブ自動切替とハイライト
+  useEffect(() => {
+    if (!isTutorial) return
+    if (tutorialStep === 6) {
+      setStudyMode('input'); setStudyTab('point')
+    } else if (tutorialStep === 7) {
+      setStudyMode('input'); setStudyTab('point')
+    } else if (tutorialStep === 8) {
+      setStudyMode('input'); setStudyTab('ai')
+    } else if (tutorialStep === 9) {
+      setStudyMode('output'); setStudyTab('point')
+    }
+    const id = setTimeout(() => {
+      if (tutorialStep === 6) { setHighlightStyle(getRect(questionAreaRef.current)) }
+      else if (tutorialStep === 7) {
+        pointsSectionRef.current?.scrollIntoView({ behavior: 'instant', block: 'nearest' })
+        setHighlightStyle(getRect(pointsSectionRef.current))
+      }
+      else if (tutorialStep === 8) { setHighlightStyle(getRect(aiTabRef.current)) }
+      else if (tutorialStep === 9) { setHighlightStyle(getRect(modeSwitchRef.current)) }
+      else setHighlightStyle(undefined)
+    }, 80)
+    return () => clearTimeout(id)
+  }, [tutorialStep, isTutorial])
+
+  // step10でRecordPageへ遷移
+  useEffect(() => {
+    if (tutorialStep === 10) {
+      navigate('/record')
+    }
+  }, [tutorialStep, navigate])
 
   // 問題が切り替わったら選択状態をリセット
   useEffect(() => {
@@ -128,7 +184,7 @@ export function StudyPage() {
         </button>
 
         {/* モード切り替えトグル */}
-        <div className="flex gap-0.5 flex-1 p-0.5 rounded-[8px]" style={{ background: 'var(--surface)' }}>
+        <div ref={modeSwitchRef} className="flex gap-0.5 flex-1 p-0.5 rounded-[8px]" style={{ background: 'var(--surface)' }}>
           <button
             aria-pressed={studyMode === 'input'}
             onClick={() => setStudyMode('input')}
@@ -163,7 +219,9 @@ export function StudyPage() {
       <ProgressBar pct={pct} showLabel />
 
       {/* Scroll content */}
-      <div className="flex-1 overflow-y-auto px-[18px] pt-4 pb-[110px]" style={{ scrollbarWidth: 'none' }}>
+      <div ref={contentAreaRef} className="flex-1 overflow-y-auto px-[18px] pt-4 pb-[110px]" style={{ scrollbarWidth: 'none' }}>
+        {/* 問題文 + 選択肢エリア */}
+        <div ref={questionAreaRef}>
         {/* Tags */}
         <div className="flex gap-1.5 mb-3">
           <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
@@ -210,6 +268,7 @@ export function StudyPage() {
             )
           })}
         </div>
+        </div>{/* /questionAreaRef */}
 
         {/* アウトプットモードで解答後のみ解説タブを表示 */}
         {(studyMode === 'input' || selectedChoice !== null) && (
@@ -227,6 +286,7 @@ export function StudyPage() {
                 ポイント・解説
               </button>
               <button
+                ref={aiTabRef}
                 role="tab"
                 aria-selected={studyTab === 'ai'}
                 onClick={() => setStudyTab('ai')}
@@ -247,7 +307,7 @@ export function StudyPage() {
                     caption={q.illustration.caption}
                   />
                 )}
-                <div className="flex flex-col gap-1.5">
+                <div ref={pointsSectionRef} className="flex flex-col gap-1.5">
                   {q.points.map((pt, i) => (
                     <div key={i} className="flex items-start gap-2 rounded-[10px] px-3 py-2.5"
                       style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
@@ -306,6 +366,23 @@ export function StudyPage() {
           次へ →
         </button>
       </div>
+
+      {/* チュートリアルオーバーレイ（steps 6-9） */}
+      {tutorialStep !== null && tutorialStep >= 6 && tutorialStep <= 9 && (
+        <TutorialOverlay
+          step={tutorialStep as TutorialStep}
+          highlightStyle={highlightStyle}
+          onNext={() => {
+            if (tutorialStep < 9) setTutorialStep((tutorialStep + 1) as TutorialStep)
+            else setTutorialStep(10)
+          }}
+          onBack={() => {
+            if (tutorialStep > 6) setTutorialStep((tutorialStep - 1) as TutorialStep)
+            else { setTutorialStep(5); navigate('/') }
+          }}
+          onClose={() => setTutorialStep(null)}
+        />
+      )}
     </div>
   )
 }

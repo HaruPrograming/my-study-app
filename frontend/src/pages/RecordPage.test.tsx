@@ -4,6 +4,15 @@ import { MemoryRouter } from 'react-router-dom'
 import { StudyProvider } from '../context/StudyContext'
 import { RecordPage } from './RecordPage'
 
+vi.mock('../context/TutorialContext', () => ({
+  useTutorial: () => ({ tutorialStep: null, setTutorialStep: vi.fn() }),
+}))
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom')
+  return { ...actual, useNavigate: () => vi.fn() }
+})
+
 const mockHistory = [
   {
     date: '2026-07-17',
