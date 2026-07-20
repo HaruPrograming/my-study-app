@@ -1,8 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import type { CSSProperties } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { BottomNav } from '../components/layout/BottomNav'
 import { StatCard } from '../components/common/StatCard'
 import { MonitorIcon, AppliedInfoIcon, BookIcon, FireIcon } from '../components/icons'
 import { useStudyContext } from '../context/StudyContext'
+import { useTutorial } from '../context/TutorialContext'
+import { TutorialOverlay } from '../components/tutorial/TutorialOverlay'
+import type { TutorialStep } from '../components/tutorial/TutorialOverlay'
 import { useCalendar } from '../hooks/useCalendar'
 import type { ExamColor } from '../types'
 
@@ -44,11 +49,32 @@ function ExamProgressCard({ examId, name, color, done, total }: { examId: string
 }
 
 export function RecordPage() {
+  const navigate = useNavigate()
   const { streakDays, completedQuestions, overallProgress, examProgresses, studyDays, studyHistory, exams, refreshData } = useStudyContext()
+  const { tutorialStep, setTutorialStep } = useTutorial()
+  const heroRef = useRef<HTMLDivElement>(null)
+  const calendarRef = useRef<HTMLDivElement>(null)
+  const [highlightStyle, setHighlightStyle] = useState<CSSProperties | undefined>()
 
   useEffect(() => {
     refreshData()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const getRect = (el: HTMLElement | null): CSSProperties | undefined => {
+    if (!el) return undefined
+    const r = el.getBoundingClientRect()
+    return { position: 'fixed', top: r.top - 4, left: r.left - 4, width: r.width + 8, height: r.height + 8 }
+  }
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      if (tutorialStep === 10) setHighlightStyle(getRect(heroRef.current))
+      else if (tutorialStep === 11) setHighlightStyle(getRect(calendarRef.current))
+      else setHighlightStyle(undefined)
+    }, 80)
+    return () => clearTimeout(id)
+  }, [tutorialStep])
+
   const year = now.getFullYear()
   const month = now.getMonth() + 1
   const { blanks, days, toKey } = useCalendar(year, month)
@@ -67,7 +93,7 @@ export function RecordPage() {
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--bg)' }}>
       {/* Hero */}
-      <div className="flex-shrink-0 px-5 pb-5" style={{ background: 'linear-gradient(150deg,#2E9E5B,#1A6E3C)' }}>
+      <div ref={heroRef} className="flex-shrink-0 px-5 pb-5" style={{ background: 'linear-gradient(150deg,#2E9E5B,#1A6E3C)' }}>
         <div className="text-[16px] font-black text-white mb-3.5 flex items-center gap-1.5 pt-2">
           学習記録
         </div>
@@ -86,7 +112,7 @@ export function RecordPage() {
         ))}
 
         <div className="text-[10px] font-extrabold tracking-[.08em] mt-[18px] mb-2" style={{ color: 'var(--muted)' }}>今月の学習日</div>
-        <div className="rounded-[12px] p-3.5" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <div ref={calendarRef} className="rounded-[12px] p-3.5" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
           <div className="text-[12px] font-bold mb-2.5" style={{ color: 'var(--text)' }}>
             {year}年 {month}月
           </div>
@@ -142,6 +168,23 @@ export function RecordPage() {
       </div>
 
       <BottomNav />
+
+      {/* チュートリアルオーバーレイ（steps 10-11） */}
+      {tutorialStep !== null && (tutorialStep === 10 || tutorialStep === 11) && (
+        <TutorialOverlay
+          step={tutorialStep as TutorialStep}
+          highlightStyle={highlightStyle}
+          onNext={() => {
+            if (tutorialStep === 10) setTutorialStep(11)
+            else { setTutorialStep(null); navigate('/') }
+          }}
+          onBack={() => {
+            if (tutorialStep === 11) setTutorialStep(10)
+            else { setTutorialStep(9); navigate(`/study/tutorial/${encodeURIComponent('デモ学習')}?tutorial=true`) }
+          }}
+          onClose={() => setTutorialStep(null)}
+        />
+      )}
     </div>
   )
 }

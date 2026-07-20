@@ -1,14 +1,19 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
+import type { CSSProperties } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useTutorial } from '../context/TutorialContext'
 import { BottomNav } from '../components/layout/BottomNav'
 import { StatCard } from '../components/common/StatCard'
 import { AddYearModal } from '../components/top/AddYearModal'
 import { AddExamModal } from '../components/top/AddExamModal'
 import { DeleteExamModal } from '../components/top/DeleteExamModal'
 import { ProcessingIndicator } from '../components/common/ProcessingIndicator'
+import { TutorialOverlay } from '../components/tutorial/TutorialOverlay'
+import type { TutorialStep } from '../components/tutorial/TutorialOverlay'
 import { MonitorIcon, AppliedInfoIcon, LockIcon, BookIcon, SeasonSpringIcon, SeasonAutumnIcon, FireIcon } from '../components/icons'
 import { useStudyContext } from '../context/StudyContext'
+import { demoExams } from '../data/demoExams'
 import type { Exam, ExamColor, YearEntry } from '../types'
 
 const EXAM_COLOR_MAP: Record<ExamColor, { gradient: string; glow: string }> = {
@@ -172,6 +177,64 @@ export function TopPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [addExamModalOpen, setAddExamModalOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null)
+  const { tutorialStep, setTutorialStep } = useTutorial()
+  const [highlightStyle, setHighlightStyle] = useState<CSSProperties | undefined>()
+  const examCardsRef = useRef<HTMLDivElement>(null)
+  const addYearBtnRef = useRef<HTMLButtonElement>(null)
+  const yearListRef = useRef<HTMLDivElement>(null)
+
+  const isTutorialActive = tutorialStep !== null && tutorialStep >= 1 && tutorialStep <= 5
+
+  const getRect = (el: HTMLElement | null): CSSProperties | undefined => {
+    if (!el) return undefined
+    const r = el.getBoundingClientRect()
+    return { position: 'fixed', top: r.top - 4, left: r.left - 4, width: r.width + 8, height: r.height + 8 }
+  }
+
+  // チュートリアル中はデモ資格・年度データを使用
+  useEffect(() => {
+    if (isTutorialActive) {
+      setSelectedExamId('tutorial')
+    }
+    if (tutorialStep === 5) {
+      setSelectedYearId('demo-year-1')
+    } else if (tutorialStep !== null && tutorialStep < 5) {
+      setSelectedYearId(null)
+    }
+  }, [tutorialStep, isTutorialActive])
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      if (tutorialStep === 1) setHighlightStyle(getRect(examCardsRef.current))
+      else if (tutorialStep === 2) setHighlightStyle(getRect(yearListRef.current))
+      else if (tutorialStep === 3) setHighlightStyle(getRect(addYearBtnRef.current))
+      else if (tutorialStep === 5) setHighlightStyle(getRect(yearListRef.current))
+      else setHighlightStyle(undefined)
+    }, 80)
+    return () => clearTimeout(id)
+  }, [tutorialStep])
+
+  // step6でStudyPage（デモ問題）へ遷移
+  useEffect(() => {
+    if (tutorialStep === 6) {
+      navigate(`/study/tutorial/${encodeURIComponent('デモ学習')}?tutorial=true`)
+    }
+  }, [tutorialStep, navigate])
+
+  const handleTutorialNext = () => {
+    if (tutorialStep === 1) { setTutorialStep(2) }
+    else if (tutorialStep === 2) { setTutorialStep(3) }
+    else if (tutorialStep === 3) { setTutorialStep(4); setModalOpen(true) }
+    else if (tutorialStep === 4) { setModalOpen(false); setTutorialStep(5) }
+    else if (tutorialStep === 5) { setTutorialStep(6) }
+  }
+
+  const handleTutorialBack = () => {
+    if (tutorialStep === 2) { setTutorialStep(1) }
+    else if (tutorialStep === 3) { setTutorialStep(2) }
+    else if (tutorialStep === 4) { setModalOpen(false); setTutorialStep(3) }
+    else if (tutorialStep === 5) { setTutorialStep(4); setModalOpen(true) }
+  }
 
   const updateStudyOrder = (examId: string) => {
     const raw = localStorage.getItem('exam_study_order')
@@ -193,9 +256,10 @@ export function TopPage() {
     })
   }, [exams])
 
-  const activeExamId = selectedExamId ?? sortedExams[0]?.id ?? 'fe'
-
-  const selectedExam = sortedExams.find(e => e.id === activeExamId) ?? sortedExams[0]
+  // チュートリアル中はデモデータを表示
+  const displayExams = isTutorialActive ? demoExams : sortedExams
+  const activeExamId = isTutorialActive ? 'tutorial' : (selectedExamId ?? sortedExams[0]?.id ?? 'fe')
+  const selectedExam = displayExams.find(e => e.id === activeExamId) ?? displayExams[0]
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--bg)' }}>
@@ -205,6 +269,12 @@ export function TopPage() {
         <div className="absolute right-[-20px] bottom-[-30px] w-[140px] h-[140px] rounded-full pointer-events-none"
           style={{ background: 'rgba(255,255,255,0.06)' }} />
         <div className="flex items-center justify-between mb-0.5">
+          <button
+            onClick={() => setTutorialStep(1)}
+            className="w-6 h-6 rounded-full text-[11px] font-extrabold flex items-center justify-center"
+            style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none' }}>
+            ?
+          </button>
           <div className="relative">
             <button
               onClick={() => setMenuOpen(prev => !prev)}
@@ -237,38 +307,48 @@ export function TopPage() {
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-[18px] pt-[18px] pb-[110px]">
         <div className="text-[10px] font-extrabold tracking-[.08em] mb-2" style={{ color: 'var(--muted)' }}>資格を選ぶ</div>
-        <div className="flex gap-2 mb-[22px] overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', marginLeft: '-18px', marginRight: '-18px', paddingLeft: '18px', paddingRight: '18px' }}>
-          {sortedExams.map(exam => (
+        <div ref={examCardsRef} className="flex gap-2 mb-[22px] overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', marginLeft: '-18px', marginRight: '-18px', paddingLeft: '18px', paddingRight: '18px' }}>
+          {displayExams.map(exam => (
             <div key={exam.id} className="flex-shrink-0" style={{ width: 'calc(33vw - 16px)', minWidth: '90px', maxWidth: '130px' }}>
               <ExamCard exam={exam} selected={activeExamId === exam.id}
-                onClick={() => { if (!exam.isLocked) { setSelectedExamId(exam.id); setSelectedYearId(null) } }}
-                onLongPress={() => { if (!exam.isLocked) setDeleteTarget({ id: exam.dbId, name: exam.name }) }} />
+                onClick={() => { if (!exam.isLocked && !isTutorialActive) { setSelectedExamId(exam.id); setSelectedYearId(null) } }}
+                onLongPress={() => { if (!exam.isLocked && !isTutorialActive) setDeleteTarget({ id: exam.dbId, name: exam.name }) }} />
             </div>
           ))}
-          <div className="flex-shrink-0" style={{ width: 'calc(33vw - 16px)', minWidth: '90px', maxWidth: '130px' }}>
-            <button
-              onClick={() => setAddExamModalOpen(true)}
-              className="w-full h-full rounded-[13px] p-3 flex flex-col items-center justify-center gap-1 cursor-pointer"
-              style={{ background: 'var(--surface)', border: '1.5px dashed var(--border)', minHeight: '90px' }}>
-              <span className="text-[18px]" style={{ color: 'var(--muted)' }}>＋</span>
-              <span className="text-[9px] font-bold" style={{ color: 'var(--muted)' }}>資格を追加</span>
-            </button>
-          </div>
+          {!isTutorialActive && (
+            <div className="flex-shrink-0" style={{ width: 'calc(33vw - 16px)', minWidth: '90px', maxWidth: '130px' }}>
+              <button
+                onClick={() => setAddExamModalOpen(true)}
+                className="w-full h-full rounded-[13px] p-3 flex flex-col items-center justify-center gap-1 cursor-pointer"
+                style={{ background: 'var(--surface)', border: '1.5px dashed var(--border)', minHeight: '90px' }}>
+                <span className="text-[18px]" style={{ color: 'var(--muted)' }}>＋</span>
+                <span className="text-[9px] font-bold" style={{ color: 'var(--muted)' }}>資格を追加</span>
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="text-[10px] font-extrabold tracking-[.08em] mb-2" style={{ color: 'var(--muted)' }}>年度・期を選ぶ</div>
-        <div className="flex flex-col gap-1.5">
+        <div ref={yearListRef} className="flex flex-col gap-1.5">
           {(selectedExam?.years ?? []).map(year => (
             <YearCard key={year.id} year={year}
               selected={selectedYearId === year.id}
-              onSelect={() => setSelectedYearId(prev => prev === year.id ? null : year.id)}
+              onSelect={() => { if (!isTutorialActive) setSelectedYearId(prev => prev === year.id ? null : year.id) }}
               onStart={() => {
+                  if (activeExamId === 'tutorial') {
+                    setTutorialStep(6)
+                    return
+                  }
                   localStorage.removeItem(`study_resume_${activeExamId}_${year.label}`)
                   updateStudyOrder(activeExamId)
                   resetProgress(activeExamId, year.label)
                   navigate(`/study/${activeExamId}/${encodeURIComponent(year.label)}?mode=${studyMode}`)
                 }}
               onResume={() => {
+                  if (activeExamId === 'tutorial') {
+                    setTutorialStep(6)
+                    return
+                  }
                   updateStudyOrder(activeExamId)
                   const saved = localStorage.getItem(`study_resume_${activeExamId}_${year.label}`)
                   const idx = saved !== null ? saved : year.completedCount
@@ -278,7 +358,7 @@ export function TopPage() {
               studyMode={studyMode}
               onModeChange={setStudyMode} />
           ))}
-          <button onClick={() => setModalOpen(true)}
+          <button ref={addYearBtnRef} onClick={() => setModalOpen(true)}
             className="flex items-center justify-center gap-1.5 w-full rounded-[12px] py-2.5 text-[12px] font-bold mt-1.5 cursor-pointer"
             style={{ background: '#fff', border: '1.5px dashed rgba(46,158,91,0.25)', color: 'var(--accent)' }}>
             ＋ 年度を追加
@@ -288,9 +368,18 @@ export function TopPage() {
 
       <BottomNav />
       <ProcessingIndicator />
-      {modalOpen && <AddYearModal examId={activeExamId} onClose={() => setModalOpen(false)} />}
+      {modalOpen && <AddYearModal examId={activeExamId} onClose={() => { setModalOpen(false); if (tutorialStep === 4) setTutorialStep(null) }} />}
       {addExamModalOpen && <AddExamModal onClose={() => setAddExamModalOpen(false)} />}
       {deleteTarget && <DeleteExamModal examId={deleteTarget.id} examName={deleteTarget.name} onClose={() => setDeleteTarget(null)} />}
+      {tutorialStep !== null && tutorialStep >= 1 && tutorialStep <= 5 && (
+        <TutorialOverlay
+          step={tutorialStep as TutorialStep}
+          onNext={handleTutorialNext}
+          onBack={handleTutorialBack}
+          onClose={() => { setTutorialStep(null); setModalOpen(false) }}
+          highlightStyle={highlightStyle}
+        />
+      )}
     </div>
   )
 }
