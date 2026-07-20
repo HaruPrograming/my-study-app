@@ -16,6 +16,11 @@ RUN { \
     echo 'opcache.jit_buffer_size=64m'; \
 } > /usr/local/etc/php/conf.d/opcache.ini
 
+RUN { \
+    echo 'upload_max_filesize=50M'; \
+    echo 'post_max_size=55M'; \
+} > /usr/local/etc/php/conf.d/uploads.ini
+
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 COPY backend/ /var/www/html/

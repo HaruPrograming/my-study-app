@@ -16,6 +16,15 @@ services:
     depends_on:
       - app
 
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile.prod
+    command: php -d memory_limit=512M artisan queue:work --sleep=3 --tries=3
+    depends_on:
+      db:
+        condition: service_healthy
+
   db:
     image: mysql:8.0
     environment:
