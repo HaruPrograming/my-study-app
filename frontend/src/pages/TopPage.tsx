@@ -268,13 +268,7 @@ export function TopPage() {
         style={{ background: 'linear-gradient(160deg,#2E9E5B,#1A6E3C)' }}>
         <div className="absolute right-[-20px] bottom-[-30px] w-[140px] h-[140px] rounded-full pointer-events-none"
           style={{ background: 'rgba(255,255,255,0.06)' }} />
-        <div className="flex items-center justify-between mb-0.5">
-          <button
-            onClick={() => setTutorialStep(1)}
-            className="w-6 h-6 rounded-full text-[11px] font-extrabold flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none' }}>
-            ?
-          </button>
+        <div className="flex items-center justify-end mb-0.5">
           <div className="relative">
             <button
               onClick={() => setMenuOpen(prev => !prev)}
@@ -296,7 +290,15 @@ export function TopPage() {
             )}
           </div>
         </div>
-        <div className="text-[21px] font-black text-white mb-3.5">ときトレ</div>
+        <div className="flex items-center gap-2 mb-3.5">
+          <span className="text-[21px] font-black text-white">ときトレ</span>
+          <button
+            onClick={() => setTutorialStep(1)}
+            className="w-6 h-6 rounded-full text-[11px] font-extrabold flex items-center justify-center"
+            style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none' }}>
+            ?
+          </button>
+        </div>
         <div className="flex gap-2">
           <StatCard value={<><FireIcon size={20} color="#F57C2B" /> {streakDays}</>} label="日連続" />
           <StatCard value={completedQuestions} label="問完了" />
