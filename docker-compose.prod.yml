@@ -1,3 +1,37 @@
+# =============================================================================
+# 本番環境用 docker-compose
+# =============================================================================
+#
+# 【開発との違い】
+#   - フロントエンド: Vite dev server ではなく nginx で静的ファイル配信
+#   - ソースコード: volume mount なし（イメージにビルド済みコードを COPY）
+#   - PHP: opcache.validate_timestamps=0（高速化）
+#   - ポート: 80 のみ公開（開発の 8000/5173 は不要）
+#
+# 【本番サーバーでの初回起動手順】
+#
+#   1. .env.prod を作成（.env.example を参考に本番値を設定）
+#      ※ .env.prod は .gitignore に含まれるため手動作成が必要
+#
+#   2. ビルド＆起動
+#      docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+#
+#   3. DBマイグレーション実行
+#      docker compose -f docker-compose.prod.yml exec app php artisan migrate --force
+#
+#   4. キャッシュ生成（初回・デプロイ毎に実行）
+#      docker compose -f docker-compose.prod.yml exec app php artisan config:cache
+#      docker compose -f docker-compose.prod.yml exec app php artisan route:cache
+#
+# 【2回目以降のデプロイ手順】
+#
+#   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+#   docker compose -f docker-compose.prod.yml exec app php artisan migrate --force
+#   docker compose -f docker-compose.prod.yml exec app php artisan config:cache
+#   docker compose -f docker-compose.prod.yml exec app php artisan route:cache
+#
+# =============================================================================
+
 services:
   app:
     build:
@@ -15,6 +49,15 @@ services:
       - "80:80"
     depends_on:
       - app
+
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile.prod
+    command: php -d memory_limit=512M artisan queue:work --sleep=3 --tries=3
+    depends_on:
+      db:
+        condition: service_healthy
 
   db:
     image: mysql:8.0
