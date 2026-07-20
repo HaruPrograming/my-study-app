@@ -19,7 +19,7 @@ RUN { \
 } > /usr/local/etc/php/conf.d/opcache.ini
 
 RUN { \
-    echo 'upload_max_filesize=30M'; \
+    echo 'upload_max_filesize=50M'; \
     echo 'post_max_size=35M'; \
 } > /usr/local/etc/php/conf.d/uploads.ini
 
