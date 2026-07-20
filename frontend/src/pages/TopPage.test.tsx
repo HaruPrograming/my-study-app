@@ -15,6 +15,10 @@ vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 1, name: 'テスト', email: 'test@example.com', avatar: null }, loading: false, login: vi.fn(), logout: mockLogout }),
 }))
 
+vi.mock('../context/TutorialContext', () => ({
+  useTutorial: () => ({ tutorialStep: null, setTutorialStep: vi.fn() }),
+}))
+
 const mockExams = [
   {
     id: 'fe',
