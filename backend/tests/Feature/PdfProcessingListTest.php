@@ -99,6 +99,6 @@ class PdfProcessingListTest extends TestCase
 
         $res = $this->getJson('/api/pdfs/processing');
 
-        $res->assertOk()->assertJsonStructure([['id', 'exam_id', 'exam_label']]);
+        $res->assertOk()->assertJsonStructure([['id', 'exam_id', 'folder_id']]);
     }
 }

@@ -3,21 +3,13 @@ import userEvent from '@testing-library/user-event'
 import { StudyProvider, useStudyContext } from './StudyContext'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 
-const mockPdfs = [
-  { id: 1, exam_id: 'fe', exam_label: '2024年 春期', question_count: 10, created_at: '2026-01-01T00:00:00.000Z' },
-]
-
-const mockProgress = [
-  { exam_id: 'fe', exam_label: '2024年 春期', completed_count: 5 },
-]
-
 function ProgressDisplay() {
   const { exams, completeQuestion } = useStudyContext()
   const year = exams.find(e => e.id === 'fe')?.years.find(y => y.label === '2024年 春期')
   return (
     <>
       <div data-testid="count">{year?.completedCount ?? 0}</div>
-      <button onClick={() => completeQuestion('fe', '2024年 春期', 1)}>complete</button>
+      <button onClick={() => completeQuestion('fe', 1, 1)}>complete</button>
     </>
   )
 }
@@ -34,11 +26,15 @@ describe('StudyContext - progress persistence', () => {
 
   it('マウント時に /api/progress から completedCount を取得して年度に反映する', async () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
-      if (url === '/api/pdfs') {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(mockPdfs) })
+      if (url === '/api/folders') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([
+          { id: 1, exam_id: 'fe', name: '2024年 春期', questions_count: 10, created_at: '2026-01-01T00:00:00.000Z' },
+        ]) })
       }
       if (url === '/api/progress') {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(mockProgress) })
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([
+          { exam_id: 'fe', folder_id: 1, completed_count: 5 },
+        ]) })
       }
       if (url === '/api/exams') {
         return Promise.resolve({ ok: true, json: () => Promise.resolve([
@@ -56,12 +52,9 @@ describe('StudyContext - progress persistence', () => {
   })
 
   it('completeQuestion を呼ぶと POST /api/progress が叩かれる', async () => {
-    const mockFetch = vi.fn().mockImplementation((url: string) => {
-      if (url === '/api/pdfs') {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(mockPdfs) })
-      }
-      return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
-    })
+    const mockFetch = vi.fn().mockImplementation(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+    )
     vi.stubGlobal('fetch', mockFetch)
 
     const user = userEvent.setup()
@@ -71,7 +64,7 @@ describe('StudyContext - progress persistence', () => {
 
     expect(mockFetch).toHaveBeenCalledWith('/api/progress', expect.objectContaining({
       method: 'POST',
-      body: JSON.stringify({ exam_id: 'fe', exam_label: '2024年 春期', question_number: 1 }),
+      body: JSON.stringify({ exam_id: 'fe', folder_id: 1, question_number: 1 }),
     }))
   })
 })
@@ -83,8 +76,8 @@ describe('StudyContext - processingUploads 復元', () => {
 
   it('マウント時に /api/pdfs/processing を取得して processingUploads に追加する', async () => {
     const mockProcessingList = [
-      { id: 10, exam_id: 'fe', exam_label: '2024年 春期' },
-      { id: 11, exam_id: 'ap', exam_label: '2024年 秋期' },
+      { id: 10, exam_id: 'fe', folder_id: 1 },
+      { id: 11, exam_id: 'ap', folder_id: 2 },
     ]
 
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
@@ -168,18 +161,18 @@ describe('StudyContext - study-days 復元', () => {
 
   it('overallProgress が uploads と progressList から正しく計算される', async () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
-      if (url === '/api/pdfs') {
+      if (url === '/api/folders') {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve([
-            { id: 1, exam_id: 'fe', exam_label: '2024年 春期', question_count: 10, created_at: '2026-01-01T00:00:00.000Z' },
+            { id: 1, exam_id: 'fe', name: '2024年 春期', questions_count: 10, created_at: '2026-01-01T00:00:00.000Z' },
           ]),
         })
       }
       if (url === '/api/progress') {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve([{ exam_id: 'fe', exam_label: '2024年 春期', completed_count: 5 }]),
+          json: () => Promise.resolve([{ exam_id: 'fe', folder_id: 1, completed_count: 5 }]),
         })
       }
       if (url === '/api/study-days') {
@@ -265,13 +258,13 @@ describe('StudyContext - examProgresses 実値化', () => {
 
   it('uploads と progressList から試験別 done・total を計算する', async () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
-      if (url === '/api/pdfs') {
+      if (url === '/api/folders') {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve([
-            { id: 1, exam_id: 'fe', exam_label: '2024年 春期', question_count: 20, created_at: '2026-01-01T00:00:00.000Z' },
-            { id: 2, exam_id: 'fe', exam_label: '2024年 秋期', question_count: 15, created_at: '2026-01-01T00:00:00.000Z' },
-            { id: 3, exam_id: 'ap', exam_label: '2024年 春期', question_count: 10, created_at: '2026-01-01T00:00:00.000Z' },
+            { id: 1, exam_id: 'fe', name: '2024年 春期', questions_count: 20, created_at: '2026-01-01T00:00:00.000Z' },
+            { id: 2, exam_id: 'fe', name: '2024年 秋期', questions_count: 15, created_at: '2026-01-01T00:00:00.000Z' },
+            { id: 3, exam_id: 'ap', name: '2024年 春期', questions_count: 10, created_at: '2026-01-01T00:00:00.000Z' },
           ]),
         })
       }
@@ -279,9 +272,9 @@ describe('StudyContext - examProgresses 実値化', () => {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve([
-            { exam_id: 'fe', exam_label: '2024年 春期', completed_count: 8 },
-            { exam_id: 'fe', exam_label: '2024年 秋期', completed_count: 3 },
-            { exam_id: 'ap', exam_label: '2024年 春期', completed_count: 2 },
+            { exam_id: 'fe', folder_id: 1, completed_count: 8 },
+            { exam_id: 'fe', folder_id: 2, completed_count: 3 },
+            { exam_id: 'ap', folder_id: 3, completed_count: 2 },
           ]),
         })
       }
