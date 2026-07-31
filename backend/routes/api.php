@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\FolderController;
+use App\Http\Controllers\GoalController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\ProgressController;
 use App\Http\Controllers\QuestionController;
@@ -42,4 +43,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/questions/generate', [QuestionController::class, 'generate']);
     Route::get('/questions/{examId}/{folderId}', [QuestionController::class, 'index']);
     Route::delete('/questions/{id}', [QuestionController::class, 'destroy']);
+
+    Route::get('/goals', [GoalController::class, 'index']);
+    Route::post('/goals', [GoalController::class, 'store']);
+    Route::patch('/goals/{id}', [GoalController::class, 'update']);
+    Route::delete('/goals/{id}', [GoalController::class, 'destroy']);
 });

@@ -65,6 +65,13 @@ export type ExamProgress = {
   total: number
 }
 
+export type Goal = {
+  id: number
+  body: string
+  is_done: boolean
+  created_at: string
+}
+
 export type ProcessingUpload = {
   uploadId: number
   examId: string

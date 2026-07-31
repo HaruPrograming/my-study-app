@@ -6,6 +6,7 @@ import { TopPage } from './pages/TopPage'
 import { StudyPage } from './pages/StudyPage'
 import { CompletePage } from './pages/CompletePage'
 import { RecordPage } from './pages/RecordPage'
+import { GoalPage } from './pages/GoalPage'
 import { LoginPage } from './pages/LoginPage'
 
 function AppContent() {
@@ -30,6 +31,7 @@ function AppContent() {
         <Route path="/study/:examId/:folderId" element={<StudyPage />} />
         <Route path="/study/:examId/:folderId/complete" element={<CompletePage />} />
         <Route path="/record" element={<RecordPage />} />
+        <Route path="/goals" element={<GoalPage />} />
       </Routes>
     </StudyProvider>
   )
