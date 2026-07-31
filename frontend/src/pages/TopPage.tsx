@@ -341,10 +341,10 @@ export function TopPage() {
                     setTutorialStep(6)
                     return
                   }
-                  localStorage.removeItem(`study_resume_${activeExamId}_${year.label}`)
+                  localStorage.removeItem(`study_resume_${year.folderId}`)
                   updateStudyOrder(activeExamId)
-                  resetProgress(activeExamId, year.label)
-                  navigate(`/study/${activeExamId}/${encodeURIComponent(year.label)}?mode=${studyMode}`)
+                  resetProgress(activeExamId, year.folderId)
+                  navigate(`/study/${activeExamId}/${year.folderId}?mode=${studyMode}`)
                 }}
               onResume={() => {
                   if (activeExamId === 'tutorial') {
@@ -352,11 +352,11 @@ export function TopPage() {
                     return
                   }
                   updateStudyOrder(activeExamId)
-                  const saved = localStorage.getItem(`study_resume_${activeExamId}_${year.label}`)
+                  const saved = localStorage.getItem(`study_resume_${year.folderId}`)
                   const idx = saved !== null ? saved : year.completedCount
-                  navigate(`/study/${activeExamId}/${encodeURIComponent(year.label)}?startIndex=${idx}&mode=${studyMode}`)
+                  navigate(`/study/${activeExamId}/${year.folderId}?startIndex=${idx}&mode=${studyMode}`)
                 }}
-              hasResume={localStorage.getItem(`study_resume_${activeExamId}_${year.label}`) !== null}
+              hasResume={localStorage.getItem(`study_resume_${year.folderId}`) !== null}
               studyMode={studyMode}
               onModeChange={setStudyMode} />
           ))}

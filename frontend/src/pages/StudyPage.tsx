@@ -24,7 +24,8 @@ function PointIcon({ icon }: { icon: Point['icon'] }) {
 }
 
 export function StudyPage() {
-  const { examId, examLabel } = useParams<{ examId: string; examLabel: string }>()
+  const { examId, folderId: folderIdStr } = useParams<{ examId: string; folderId: string }>()
+  const folderId = Number(folderIdStr ?? '0')
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { completeQuestion } = useStudyContext()
@@ -57,7 +58,7 @@ export function StudyPage() {
       setLoading(false)
       return
     }
-    fetch(`/api/questions/${examId}/${examLabel}`, { credentials: 'include' })
+    fetch(`/api/questions/${examId}/${folderId}`, { credentials: 'include' })
       .then(res => {
         if (!res.ok) throw new Error('fetch failed')
         return res.json()
@@ -65,7 +66,7 @@ export function StudyPage() {
       .then((data: Question[]) => setExamQuestions(data))
       .catch(() => setExamQuestions([]))
       .finally(() => setLoading(false))
-  }, [examId, examLabel, isTutorial])
+  }, [examId, folderId, isTutorial])
 
   // チュートリアルstep6-9のモード・タブ自動切替とハイライト
   useEffect(() => {
@@ -118,17 +119,17 @@ export function StudyPage() {
   if (!q) return <div className="p-4">問題が見つかりません</div>
 
   const pct = Math.round(q.number / q.totalCount * 100)
-  const resumeKey = `study_resume_${examId}_${examLabel}`
+  const resumeKey = `study_resume_${folderId}`
 
   const canProceed = studyMode === 'input' || selectedChoice !== null
 
   const handleNext = () => {
-    completeQuestion(examId ?? '', examLabel ?? '', q.number)
+    completeQuestion(examId ?? '', folderId, q.number)
     if (currentIndex < examQuestions.length - 1) {
       setCurrentIndex(i => i + 1)
     } else {
       localStorage.removeItem(resumeKey)
-      navigate(`/study/${examId}/${examLabel}/complete`)
+      navigate(`/study/${examId}/${folderId}/complete`)
     }
   }
 
@@ -213,7 +214,7 @@ export function StudyPage() {
       </div>
 
       <div className="text-center text-[10px] py-0.5" style={{ color: 'var(--muted)' }}>
-        {q.examLabel.replace(' ', ' · ')} &nbsp;·&nbsp; Q{q.number} / {q.totalCount}
+        {(q.folderName ?? '').replace(' ', ' · ')} &nbsp;·&nbsp; Q{q.number} / {q.totalCount}
       </div>
 
       <ProgressBar pct={pct} showLabel />
@@ -226,7 +227,7 @@ export function StudyPage() {
         <div className="flex gap-1.5 mb-3">
           <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
             style={{ background: 'var(--orange-soft)', border: '1px solid rgba(245,124,43,0.3)', color: 'var(--orange)' }}>
-            {q.examLabel}
+            {q.folderName}
           </span>
           <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
             style={{ background: 'var(--accent-soft)', border: '1px solid rgba(46,158,91,0.3)', color: 'var(--accent)' }}>
