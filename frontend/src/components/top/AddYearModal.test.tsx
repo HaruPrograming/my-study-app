@@ -193,6 +193,41 @@ describe('AddYearModal - AI生成タブ', () => {
   })
 })
 
+describe('AddYearModal - 既存フォルダへの問題追加モード（folderId指定）', () => {
+  it('folderId を渡すとタイトルがロックされてフォルダ名が表示される', () => {
+    render(<AddYearModal examId="fe" onClose={vi.fn()} folderId={5} folderName="2024年 春期" />)
+    const nameInput = screen.getByPlaceholderText('例：2024年 春期') as HTMLInputElement
+    expect(nameInput.value).toBe('2024年 春期')
+    expect(nameInput).toBeDisabled()
+  })
+
+  it('folderId を渡すとファイル作成タブが表示されない', () => {
+    render(<AddYearModal examId="fe" onClose={vi.fn()} folderId={5} folderName="2024年 春期" />)
+    expect(screen.queryByRole('tab', { name: 'ファイル作成' })).not.toBeInTheDocument()
+  })
+
+  it('folderId を渡してAI生成すると folder_id がリクエストに含まれる', async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({ upload_id: 3, folder_id: 5, status: 'pending' }),
+    } as Response)
+
+    render(<AddYearModal examId="fe" onClose={vi.fn()} folderId={5} folderName="2024年 春期" />)
+    fireEvent.click(screen.getByRole('tab', { name: 'AI 生成' }))
+    fireEvent.change(screen.getByPlaceholderText(/生成してください/), {
+      target: { value: '問題を追加してください' },
+    })
+    fireEvent.click(screen.getByText('AI で問題を生成'))
+
+    await waitFor(() => {
+      const call = vi.mocked(globalThis.fetch).mock.calls[0]
+      const body = JSON.parse(call[1]!.body as string)
+      expect(body.folder_id).toBe(5)
+      expect(body.name).toBeUndefined()
+    })
+  })
+})
+
 describe('AddYearModal - ファイル作成タブ', () => {
   it('「ファイル作成」タブが表示される', () => {
     render(<AddYearModal examId="fe" onClose={vi.fn()} />)

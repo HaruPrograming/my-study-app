@@ -33,6 +33,7 @@ class Question extends Model
     {
         return [
             'id'          => "{$this->exam_id}-{$this->id}",
+            'dbId'        => $this->id,
             'examId'      => $this->exam_id,
             'folderId'    => $this->folder_id,
             'folderName'  => $this->folder?->name ?? $this->exam_label ?? '',

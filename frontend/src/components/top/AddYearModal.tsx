@@ -2,13 +2,14 @@ import { useState, useRef, useEffect } from 'react'
 import { FileIcon, DocumentIcon } from '../icons'
 import { useStudyContext } from '../../context/StudyContext'
 
-type Props = { examId: string; onClose: () => void }
+type Props = { examId: string; onClose: () => void; folderId?: number; folderName?: string }
 type Tab = 'pdf' | 'ai' | 'file'
 
-export function AddYearModal({ examId, onClose }: Props) {
+export function AddYearModal({ examId, onClose, folderId, folderName }: Props) {
+  const isAppendMode = folderId !== undefined
   const { startProcessing, refreshData } = useStudyContext()
   const [tab, setTab] = useState<Tab>('pdf')
-  const [name, setName] = useState('')
+  const [name, setName] = useState(folderName ?? '')
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [answerFile, setAnswerFile] = useState<File | null>(null)
   const [aiPrompt, setAiPrompt] = useState('')
@@ -55,17 +56,21 @@ export function AddYearModal({ examId, onClose }: Props) {
   }
 
   const handleAiGenerate = async () => {
-    if (!name || !aiPrompt) return
+    if (!isAppendMode && !name) return
+    if (!aiPrompt) return
     setUploading(true)
     setError('')
 
     try {
       const prompt = `${aiPrompt}\n\n（${questionCount}問生成してください）`
+      const body = isAppendMode
+        ? { prompt, folder_id: folderId, exam_id: examId }
+        : { prompt, name, exam_id: examId }
       const res = await fetch('/api/ai-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ prompt, name, exam_id: examId }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       if (!res.ok) throw new Error((data.message as string) ?? 'AI 生成に失敗しました。')
@@ -127,16 +132,19 @@ export function AddYearModal({ examId, onClose }: Props) {
           <button role="tab" aria-selected={tab === 'ai'} onClick={() => setTab('ai')} style={tabStyle('ai')}>
             AI 生成
           </button>
-          <button role="tab" aria-selected={tab === 'file'} onClick={() => setTab('file')} style={tabStyle('file')}>
-            ファイル作成
-          </button>
+          {!isAppendMode && (
+            <button role="tab" aria-selected={tab === 'file'} onClick={() => setTab('file')} style={tabStyle('file')}>
+              ファイル作成
+            </button>
+          )}
         </div>
 
         <div className="text-[10px] font-bold tracking-wider mb-1" style={{ color: 'var(--muted)' }}>タイトル</div>
         <input value={name} onChange={e => setName(e.target.value)}
+          disabled={isAppendMode}
           placeholder="例：2024年 春期"
           className="w-full h-10 rounded-[10px] px-3 text-[13px] mb-3 outline-none"
-          style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
+          style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)', opacity: isAppendMode ? 0.6 : 1 }} />
 
         {tab === 'file' ? (
           <div className="text-[13px] mb-3 rounded-[10px] px-3 py-3"

@@ -3,6 +3,7 @@ import type { Question } from '../types'
 export const demoQuestions: Question[] = [
   {
     id: 'demo-1',
+    dbId: 0,
     examId: 'tutorial',
     folderId: 0,
     folderName: 'チュートリアル',
@@ -27,6 +28,7 @@ export const demoQuestions: Question[] = [
   },
   {
     id: 'demo-2',
+    dbId: 0,
     examId: 'tutorial',
     folderId: 0,
     folderName: 'チュートリアル',

@@ -11,6 +11,7 @@ vi.mock('../context/TutorialContext', () => ({
 
 const mockQuestion1 = {
   id: 'fe-1',
+  dbId: 1,
   examId: 'fe',
   folderId: 202305,
   folderName: '202305',
@@ -126,6 +127,25 @@ describe('StudyPage', () => {
 
     expect(screen.getByText('2問目の問題文')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /前へ/ })).toBeInTheDocument()
+  })
+
+  it('「次へ」ボタンをクリックするたびに localStorage に進捗が保存される', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([mockQuestion1, mockQuestion2]),
+    } as Response))
+    localStorage.clear()
+
+    renderStudyPage('fe', '202305')
+
+    await waitFor(() => {
+      expect(screen.getByText('1問目の問題文')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /次へ/ }))
+
+    expect(localStorage.getItem('study_resume_202305')).toBe('1')
   })
 
   it('「前へ」ボタンをクリックすると前の問題に戻る', async () => {
@@ -388,5 +408,82 @@ describe('StudyPage', () => {
     await user.click(screen.getByRole('tab', { name: 'ポイント・解説' }))
 
     expect(screen.getByText('ポイント1')).toBeInTheDocument()
+  })
+
+  it('問題削除ボタンが表示される', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([mockQuestion1, mockQuestion2]),
+    } as Response))
+
+    renderStudyPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('1問目の問題文')).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('button', { name: /この問題を削除/ })).toBeInTheDocument()
+  })
+
+  it('削除ボタンクリックで DELETE /api/questions/{id} が呼ばれ次の問題へ進む', async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string, opts?: RequestInit) => {
+      if (opts?.method === 'DELETE') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ message: '問題を削除しました' }) } as Response)
+      }
+      if (typeof url === 'string' && url.includes('/api/questions/')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([mockQuestion1, mockQuestion2]) } as Response)
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const user = userEvent.setup()
+    renderStudyPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('1問目の問題文')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /この問題を削除/ }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/questions/1',
+        expect.objectContaining({ method: 'DELETE', credentials: 'include' })
+      )
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('2問目の問題文')).toBeInTheDocument()
+    })
+  })
+
+  it('削除後に問題が1件のみの場合はフォルダ一覧に戻る', async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string, opts?: RequestInit) => {
+      if (opts?.method === 'DELETE') {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ message: '問題を削除しました' }) } as Response)
+      }
+      if (typeof url === 'string' && url.includes('/api/questions/')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([mockQuestion1]) } as Response)
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const user = userEvent.setup()
+    renderStudyPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('1問目の問題文')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /この問題を削除/ }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/questions/1',
+        expect.objectContaining({ method: 'DELETE', credentials: 'include' })
+      )
+    })
   })
 })
