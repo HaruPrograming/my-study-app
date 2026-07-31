@@ -10,6 +10,7 @@ class PdfUpload extends Model
         'user_id',
         'exam_id',
         'exam_label',
+        'folder_id',
         'question_pdf_path',
         'answer_pdf_path',
         'file_hash',

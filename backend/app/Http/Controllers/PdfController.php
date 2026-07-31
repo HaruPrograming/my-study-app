@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\ProcessPdfJob;
+use App\Models\Folder;
 use App\Models\PdfUpload;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,13 +16,15 @@ class PdfController extends Controller
         $request->validate([
             'question_pdf' => ['required', 'file', 'mimes:pdf', 'max:30720'],
             'answer_pdf'   => ['nullable', 'file', 'mimes:pdf', 'max:30720'],
-            'title'        => ['required', 'string', 'max:100'],
+            'name'         => ['required', 'string', 'max:100'],
             'exam_id'      => ['required', 'string'],
         ]);
 
+        $userId = auth()->id();
+
         $fileHash = hash_file('sha256', $request->file('question_pdf')->getRealPath());
 
-        $duplicate = PdfUpload::where('user_id', auth()->id())
+        $duplicate = PdfUpload::where('user_id', $userId)
             ->where('file_hash', $fileHash)
             ->whereIn('status', ['done', 'pending', 'processing'])
             ->exists();
@@ -30,15 +33,20 @@ class PdfController extends Controller
             return response()->json(['message' => 'このPDFはすでに登録済みです'], 409);
         }
 
+        $folder = Folder::firstOrCreate(
+            ['user_id' => $userId, 'exam_id' => $request->input('exam_id'), 'name' => $request->input('name')],
+        );
+
         $questionPath = $request->file('question_pdf')->store('pdfs', 'private');
         $answerPath   = $request->hasFile('answer_pdf')
             ? $request->file('answer_pdf')->store('pdfs', 'private')
             : null;
 
         $upload = PdfUpload::create([
-            'user_id'            => auth()->id(),
+            'user_id'            => $userId,
             'exam_id'            => $request->input('exam_id'),
-            'exam_label'         => $request->input('title'),
+            'exam_label'         => $request->input('name'),
+            'folder_id'          => $folder->id,
             'question_pdf_path'  => $questionPath,
             'answer_pdf_path'    => $answerPath,
             'file_hash'          => $fileHash,
@@ -47,7 +55,7 @@ class PdfController extends Controller
 
         ProcessPdfJob::dispatch($upload->id);
 
-        return response()->json(['upload_id' => $upload->id, 'status' => 'pending'], 202);
+        return response()->json(['upload_id' => $upload->id, 'folder_id' => $folder->id, 'status' => 'pending'], 202);
     }
 
     public function listDone(): JsonResponse
@@ -55,7 +63,7 @@ class PdfController extends Controller
         $uploads = PdfUpload::where('user_id', auth()->id())
             ->where('status', 'done')
             ->orderBy('created_at', 'desc')
-            ->get(['id', 'exam_id', 'exam_label', 'question_count', 'created_at']);
+            ->get(['id', 'exam_id', 'folder_id', 'question_count', 'created_at']);
 
         return response()->json($uploads);
     }
@@ -65,7 +73,7 @@ class PdfController extends Controller
         $uploads = PdfUpload::where('user_id', auth()->id())
             ->whereIn('status', ['pending', 'processing'])
             ->orderBy('created_at', 'desc')
-            ->get(['id', 'exam_id', 'exam_label']);
+            ->get(['id', 'exam_id', 'folder_id']);
 
         return response()->json($uploads);
     }
@@ -83,7 +91,7 @@ class PdfController extends Controller
             'question_count' => $upload->question_count,
             'error_message'  => $upload->error_message,
             'exam_id'        => $upload->exam_id,
-            'exam_label'     => $upload->exam_label,
+            'folder_id'      => $upload->folder_id,
         ]);
     }
 }

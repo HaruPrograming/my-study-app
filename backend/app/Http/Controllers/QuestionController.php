@@ -30,11 +30,11 @@ class QuestionController extends Controller
         return response()->json($result);
     }
 
-    public function index(string $examId, string $examLabel): JsonResponse
+    public function index(string $examId, int $folderId): JsonResponse
     {
-        $questions = Question::with('choices')
+        $questions = Question::with(['choices', 'folder'])
             ->where('exam_id', $examId)
-            ->where('exam_label', $examLabel)
+            ->where('folder_id', $folderId)
             ->orderBy('number')
             ->get()
             ->map(fn (Question $q) => $q->toApiArray())
