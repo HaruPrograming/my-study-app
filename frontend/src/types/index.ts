@@ -17,6 +17,7 @@ export type Point = {
 
 export type Question = {
   id: string
+  dbId: number
   examId: string
   folderId: number
   folderName: string

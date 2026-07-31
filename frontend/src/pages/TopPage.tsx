@@ -87,9 +87,10 @@ function ExamCard({ exam, selected, onClick, onLongPress }: { exam: Exam; select
   )
 }
 
-function YearCard({ year, selected, onSelect, onStart, onResume, hasResume, studyMode, onModeChange }: {
+function YearCard({ year, selected, onSelect, onStart, onResume, hasResume, studyMode, onModeChange, onAddQuestions, onDelete }: {
   year: YearEntry; selected: boolean; onSelect: () => void; onStart: () => void; onResume: () => void; hasResume?: boolean
   studyMode: 'input' | 'output'; onModeChange: (mode: 'input' | 'output') => void
+  onAddQuestions: () => void; onDelete: () => void
 }) {
   const pct = year.totalCount > 0 ? Math.min(100, Math.round(year.completedCount / year.totalCount * 100)) : 0
 
@@ -158,6 +159,19 @@ function YearCard({ year, selected, onSelect, onStart, onResume, hasResume, stud
               {hasResume ? '続きから →' : year.completedCount >= year.totalCount && year.totalCount > 0 ? 'もう一度 →' : year.completedCount > 0 ? '続きから →' : '最初から →'}
             </button>
           </div>
+          {/* 問題追加 / フォルダ削除 */}
+          <div className="flex gap-2 mt-1">
+            <button onClick={e => { e.stopPropagation(); onAddQuestions() }}
+              className="flex-1 h-8 rounded-[8px] text-[11px] font-bold"
+              style={{ background: 'var(--surface)', border: '1.5px dashed rgba(46,158,91,0.4)', color: 'var(--accent)' }}>
+              ＋ 問題を追加
+            </button>
+            <button onClick={e => { e.stopPropagation(); onDelete() }}
+              className="h-8 px-3 rounded-[8px] text-[11px] font-bold"
+              style={{ background: 'var(--surface)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444' }}>
+              🗑
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -167,7 +181,7 @@ function YearCard({ year, selected, onSelect, onStart, onResume, hasResume, stud
 export function TopPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { streakDays, completedQuestions, overallProgress, exams, resetProgress } = useStudyContext()
+  const { streakDays, completedQuestions, overallProgress, exams, resetProgress, refreshData } = useStudyContext()
   const { user, logout } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const locationState = location.state as { examId?: string } | null
@@ -177,6 +191,8 @@ export function TopPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [addExamModalOpen, setAddExamModalOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null)
+  const [addQuestionsTarget, setAddQuestionsTarget] = useState<{ folderId: number; folderName: string } | null>(null)
+  const [deleteFolderTarget, setDeleteFolderTarget] = useState<{ folderId: number; folderName: string } | null>(null)
   const { tutorialStep, setTutorialStep } = useTutorial()
   const [highlightStyle, setHighlightStyle] = useState<CSSProperties | undefined>()
   const examCardsRef = useRef<HTMLDivElement>(null)
@@ -234,6 +250,13 @@ export function TopPage() {
     else if (tutorialStep === 3) { setTutorialStep(2) }
     else if (tutorialStep === 4) { setModalOpen(false); setTutorialStep(3) }
     else if (tutorialStep === 5) { setTutorialStep(4); setModalOpen(true) }
+  }
+
+  const handleDeleteFolder = async (folderId: number) => {
+    await fetch(`/api/folders/${folderId}`, { method: 'DELETE', credentials: 'include' })
+    setDeleteFolderTarget(null)
+    setSelectedYearId(null)
+    refreshData()
   }
 
   const updateStudyOrder = (examId: string) => {
@@ -358,7 +381,9 @@ export function TopPage() {
                 }}
               hasResume={localStorage.getItem(`study_resume_${year.folderId}`) !== null}
               studyMode={studyMode}
-              onModeChange={setStudyMode} />
+              onModeChange={setStudyMode}
+              onAddQuestions={() => setAddQuestionsTarget({ folderId: year.folderId, folderName: year.label })}
+              onDelete={() => setDeleteFolderTarget({ folderId: year.folderId, folderName: year.label })} />
           ))}
           <button ref={addYearBtnRef} onClick={() => setModalOpen(true)}
             className="flex items-center justify-center gap-1.5 w-full rounded-[12px] py-2.5 text-[12px] font-bold mt-1.5 cursor-pointer"
@@ -371,6 +396,35 @@ export function TopPage() {
       <BottomNav />
       <ProcessingIndicator />
       {modalOpen && <AddYearModal examId={activeExamId} onClose={() => { setModalOpen(false); if (tutorialStep === 4) setTutorialStep(null) }} />}
+      {addQuestionsTarget && (
+        <AddYearModal
+          examId={activeExamId}
+          folderId={addQuestionsTarget.folderId}
+          folderName={addQuestionsTarget.folderName}
+          onClose={() => setAddQuestionsTarget(null)} />
+      )}
+      {deleteFolderTarget && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.42)' }}>
+          <div className="bg-white rounded-[18px] p-5 mx-4 w-full max-w-sm">
+            <div className="text-[15px] font-extrabold mb-2" style={{ color: 'var(--text)' }}>フォルダを削除</div>
+            <div className="text-[13px] mb-4" style={{ color: 'var(--muted)' }}>
+              「{deleteFolderTarget.folderName}」を削除します。この操作は取り消せません。
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setDeleteFolderTarget(null)}
+                className="flex-1 h-11 rounded-[12px] text-[13px] font-semibold"
+                style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--muted)' }}>
+                キャンセル
+              </button>
+              <button onClick={() => handleDeleteFolder(deleteFolderTarget.folderId)}
+                className="flex-1 h-11 rounded-[12px] text-[13px] font-bold text-white"
+                style={{ background: '#EF4444' }}>
+                削除する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {addExamModalOpen && <AddExamModal onClose={() => setAddExamModalOpen(false)} />}
       {deleteTarget && <DeleteExamModal examId={deleteTarget.id} examName={deleteTarget.name} onClose={() => setDeleteTarget(null)} />}
       {tutorialStep !== null && tutorialStep >= 1 && tutorialStep <= 5 && (
