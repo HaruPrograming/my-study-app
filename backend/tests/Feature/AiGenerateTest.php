@@ -112,4 +112,62 @@ class AiGenerateTest extends TestCase
         $this->assertDatabaseHas('pdf_uploads', ['id' => $uploadId]);
         $this->assertDatabaseHas('folders', ['id' => $folderId]);
     }
+
+    public function test_folder_idを直接指定すると既存フォルダに問題を追加できる(): void
+    {
+        Queue::fake();
+
+        $folder = Folder::create([
+            'user_id' => $this->user->id,
+            'exam_id' => 'fe',
+            'name'    => '既存フォルダ',
+        ]);
+
+        $res = $this->postJson('/api/ai-generate', [
+            'prompt'    => '追加問題を生成してください',
+            'folder_id' => $folder->id,
+            'exam_id'   => 'fe',
+        ]);
+
+        $res->assertStatus(202)
+            ->assertJson(['folder_id' => $folder->id]);
+
+        Queue::assertPushed(GenerateAiQuestionsJob::class);
+
+        // 既存フォルダへの追加なので重複チェックをスキップ（新しい pdf_upload が作成される）
+        $this->assertDatabaseHas('pdf_uploads', [
+            'folder_id' => $folder->id,
+            'status'    => 'pending',
+        ]);
+    }
+
+    public function test_folder_idとnameが両方なければ422(): void
+    {
+        $res = $this->postJson('/api/ai-generate', [
+            'prompt'  => '問題を生成してください',
+            'exam_id' => 'fe',
+        ]);
+
+        $res->assertUnprocessable();
+    }
+
+    public function test_他人のフォルダidを指定すると403(): void
+    {
+        Queue::fake();
+
+        $other = \App\Models\User::factory()->create();
+        $folder = Folder::create([
+            'user_id' => $other->id,
+            'exam_id' => 'fe',
+            'name'    => '他人のフォルダ',
+        ]);
+
+        $res = $this->postJson('/api/ai-generate', [
+            'prompt'    => '問題を生成してください',
+            'folder_id' => $folder->id,
+            'exam_id'   => 'fe',
+        ]);
+
+        $res->assertStatus(403);
+    }
 }
