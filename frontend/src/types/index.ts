@@ -18,7 +18,8 @@ export type Point = {
 export type Question = {
   id: string
   examId: string
-  examLabel: string
+  folderId: number
+  folderName: string
   category: string
   number: number
   totalCount: number
@@ -35,6 +36,7 @@ export type Question = {
 
 export type YearEntry = {
   id: string
+  folderId: number
   label: string
   season: 'spring' | 'autumn'
   isNew: boolean
@@ -65,5 +67,6 @@ export type ExamProgress = {
 export type ProcessingUpload = {
   uploadId: number
   examId: string
-  examLabel: string
+  folderId: number
+  folderName: string
 }

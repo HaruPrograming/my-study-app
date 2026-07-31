@@ -2,10 +2,11 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import type { Exam, ExamProgress, YearEntry, ProcessingUpload } from '../types'
 
 type ApiExam = { id: number; name: string; short_name: string; color: string }
+type ApiFolder = { id: number; exam_id: string; name: string; questions_count: number; created_at: string }
 
 export type DailyHistoryEntry = {
   exam_id: string
-  exam_label: string
+  folder_id: number | null
   count: number
 }
 
@@ -16,7 +17,7 @@ export type StudyHistoryItem = {
 
 export type FailedUpload = {
   uploadId: number
-  examLabel: string
+  folderName: string
   errorMessage: string
 }
 
@@ -30,10 +31,9 @@ type StudyContextValue = {
   exams: Exam[]
   processingUploads: ProcessingUpload[]
   failedUploads: FailedUpload[]
-  completeQuestion: (examId: string, examLabel: string, questionNumber: number) => void
-  resetProgress: (examId: string, examLabel: string) => void
+  completeQuestion: (examId: string, folderId: number, questionNumber: number) => void
+  resetProgress: (examId: string, folderId: number) => void
   addStudyDay: (date: string) => void
-  addYearEntry: (examId: string, entry: YearEntry) => void
   startProcessing: (upload: ProcessingUpload) => void
   dismissFailedUpload: (uploadId: number) => void
   refreshData: () => void
@@ -49,26 +49,32 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   const [exams, setExams] = useState<Exam[]>([])
   const [processingUploads, setProcessingUploads] = useState<ProcessingUpload[]>([])
   const [failedUploads, setFailedUploads] = useState<FailedUpload[]>([])
+  const [studyDays, setStudyDays] = useState<Set<string>>(new Set())
+  const [examProgresses, setExamProgresses] = useState<ExamProgress[]>([
+    { examId: 'fe', name: '基本情報技術者', color: 'green',  done: 0, total: 0 },
+    { examId: 'ap', name: '応用情報技術者', color: 'orange', done: 0, total: 0 },
+  ])
 
   const refreshData = () => {
     Promise.all([
-      fetch('/api/pdfs', { credentials: 'include' }).then(r => r.json()),
-      fetch('/api/progress', { credentials: 'include' }).then(r => r.json()).catch(() => [] as Array<{ exam_id: string; exam_label: string; completed_count: number }>),
-      fetch('/api/pdfs/processing', { credentials: 'include' }).then(r => r.json()).catch(() => [] as Array<{ id: number; exam_id: string; exam_label: string }>),
+      fetch('/api/folders', { credentials: 'include' }).then(r => r.json()).catch(() => [] as ApiFolder[]),
+      fetch('/api/progress', { credentials: 'include' }).then(r => r.json()).catch(() => [] as Array<{ exam_id: string; folder_id: number; completed_count: number }>),
+      fetch('/api/pdfs/processing', { credentials: 'include' }).then(r => r.json()).catch(() => [] as Array<{ id: number; exam_id: string; folder_id: number }>),
       fetch('/api/study-days', { credentials: 'include' }).then(r => r.json()).catch(() => ({ dates: [] as string[], streak_days: 0, last_study_date: null })),
       fetch('/api/study-days/history', { credentials: 'include' }).then(r => r.json()).catch(() => [] as StudyHistoryItem[]),
       fetch('/api/exams', { credentials: 'include' }).then(r => r.json()).catch(() => [] as ApiExam[]),
     ])
-      .then(([uploads, progressList, processingList, studyData, historyData, examList]: [
-        Array<{ id: number; exam_id: string; exam_label: string; question_count: number; created_at: string }>,
-        Array<{ exam_id: string; exam_label: string; completed_count: number }>,
-        Array<{ id: number; exam_id: string; exam_label: string }>,
+      .then(([folderList, progressList, processingList, studyData, historyData, examList]: [
+        ApiFolder[],
+        Array<{ exam_id: string; folder_id: number; completed_count: number }>,
+        Array<{ id: number; exam_id: string; folder_id: number }>,
         { dates: string[]; streak_days: number; last_study_date: string | null },
         StudyHistoryItem[],
         ApiExam[],
       ]) => {
         const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
         const apiExams: ApiExam[] = Array.isArray(examList) ? examList : []
+        const folders: ApiFolder[] = Array.isArray(folderList) ? folderList : []
 
         setExams(apiExams.map(e => ({
           id: e.short_name,
@@ -77,18 +83,19 @@ export function StudyProvider({ children }: { children: ReactNode }) {
           shortName: e.name,
           color: (e.color as 'green' | 'orange' | 'locked') ?? 'green',
           isLocked: false,
-          years: uploads
-            .filter(u => u.exam_id === e.short_name)
-            .map(u => {
-              const prog = progressList.find(p => p.exam_id === e.short_name && p.exam_label === u.exam_label)
+          years: folders
+            .filter(f => f.exam_id === e.short_name)
+            .map(f => {
+              const prog = progressList.find(p => p.folder_id === f.id)
               return {
-                id: `upload-${u.id}`,
-                label: u.exam_label,
-                season: u.exam_label.includes('春') ? 'spring' : 'autumn' as 'spring' | 'autumn',
-                isNew: new Date(u.created_at).getTime() > sevenDaysAgo,
+                id: `folder-${f.id}`,
+                folderId: f.id,
+                label: f.name,
+                season: f.name.includes('春') ? 'spring' : 'autumn' as 'spring' | 'autumn',
+                isNew: new Date(f.created_at).getTime() > sevenDaysAgo,
                 completedCount: prog?.completed_count ?? 0,
-                totalCount: u.question_count ?? 0,
-              }
+                totalCount: f.questions_count ?? 0,
+              } satisfies YearEntry
             }),
         })))
 
@@ -96,7 +103,8 @@ export function StudyProvider({ children }: { children: ReactNode }) {
           setProcessingUploads(processingList.map(u => ({
             uploadId: u.id,
             examId: u.exam_id,
-            examLabel: u.exam_label,
+            folderId: u.folder_id,
+            folderName: folders.find(f => f.id === u.folder_id)?.name ?? '',
           })))
         }
 
@@ -105,7 +113,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
           name: e.name,
           color: (e.color as 'green' | 'orange') ?? 'green',
           done:  progressList.filter(p => p.exam_id === e.short_name).reduce((s, p) => s + p.completed_count, 0),
-          total: uploads.filter(u => u.exam_id === e.short_name).reduce((s, u) => s + (u.question_count ?? 0), 0),
+          total: folders.filter(f => f.exam_id === e.short_name).reduce((s, f) => s + (f.questions_count ?? 0), 0),
         })))
 
         setStreakDays(studyData?.streak_days ?? 0)
@@ -115,13 +123,12 @@ export function StudyProvider({ children }: { children: ReactNode }) {
         const totalCompleted = progressList.reduce((s, p) => s + p.completed_count, 0)
         setCompletedQuestions(totalCompleted)
 
-        const totalQuestions = uploads.reduce((s, u) => s + (u.question_count ?? 0), 0)
+        const totalQuestions = folders.reduce((s, f) => s + (f.questions_count ?? 0), 0)
         setOverallProgress(totalQuestions > 0 ? Math.round(totalCompleted / totalQuestions * 100) : 0)
       })
       .catch(() => {})
   }
 
-  // マウント時にデータを取得
   useEffect(() => {
     refreshData()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -135,11 +142,11 @@ export function StudyProvider({ children }: { children: ReactNode }) {
         processingUploads.map(async u => {
           try {
             const res = await fetch(`/api/pdfs/${u.uploadId}/status`, { credentials: 'include' })
-            if (!res.ok) return { ...u, status: 'pending' as const, questionCount: 0, errorMessage: '' }
+            if (!res.ok) return { ...u, status: 'pending' as const, errorMessage: '' }
             const data = await res.json() as { status: string; question_count: number; error_message?: string }
-            return { ...u, status: data.status, questionCount: data.question_count, errorMessage: data.error_message ?? '' }
+            return { ...u, status: data.status, errorMessage: data.error_message ?? '' }
           } catch {
-            return { ...u, status: 'pending' as const, questionCount: 0, errorMessage: '' }
+            return { ...u, status: 'pending' as const, errorMessage: '' }
           }
         })
       )
@@ -150,22 +157,11 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       results.forEach(r => {
         if (r.status === 'done') {
           doneIds.add(r.uploadId)
-          const entry: YearEntry = {
-            id: `upload-${r.uploadId}`,
-            label: r.examLabel,
-            season: r.examLabel.includes('春') ? 'spring' : 'autumn',
-            isNew: true,
-            completedCount: 0,
-            totalCount: r.questionCount ?? 0,
-          }
-          setExams(prev => prev.map(e =>
-            e.id === r.examId ? { ...e, years: [entry, ...e.years] } : e
-          ))
         } else if (r.status === 'failed') {
           failedIds.add(r.uploadId)
           setFailedUploads(prev => [...prev, {
             uploadId: r.uploadId,
-            examLabel: r.examLabel,
+            folderName: r.folderName,
             errorMessage: r.errorMessage || '問題の生成に失敗しました。再度お試しください。',
           }])
         }
@@ -175,24 +171,21 @@ export function StudyProvider({ children }: { children: ReactNode }) {
         setProcessingUploads(prev =>
           prev.filter(u => !doneIds.has(u.uploadId) && !failedIds.has(u.uploadId))
         )
+        if (doneIds.size > 0) {
+          refreshData()
+        }
       }
     }, 3000)
 
     return () => clearInterval(interval)
-  }, [processingUploads])
+  }, [processingUploads]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [studyDays, setStudyDays] = useState<Set<string>>(new Set())
-  const [examProgresses, setExamProgresses] = useState<ExamProgress[]>([
-    { examId: 'fe', name: '基本情報技術者', color: 'green',  done: 0, total: 0 },
-    { examId: 'ap', name: '応用情報技術者', color: 'orange', done: 0, total: 0 },
-  ])
-
-  const resetProgress = (examId: string, examLabel: string) => {
+  const resetProgress = (examId: string, folderId: number) => {
     setExams(prev => prev.map(exam =>
       exam.id !== examId ? exam : {
         ...exam,
         years: exam.years.map(year =>
-          year.label !== examLabel ? year : { ...year, completedCount: 0 }
+          year.folderId !== folderId ? year : { ...year, completedCount: 0 }
         ),
       }
     ))
@@ -200,16 +193,16 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ exam_id: examId, exam_label: examLabel }),
+      body: JSON.stringify({ exam_id: examId, folder_id: folderId }),
     }).catch(() => {})
   }
 
-  const completeQuestion = (examId: string, examLabel: string, questionNumber: number) => {
+  const completeQuestion = (examId: string, folderId: number, questionNumber: number) => {
     setExams(prev => prev.map(exam =>
       exam.id !== examId ? exam : {
         ...exam,
         years: exam.years.map(year =>
-          year.label !== examLabel ? year : {
+          year.folderId !== folderId ? year : {
             ...year,
             completedCount: Math.min(year.totalCount, year.completedCount + 1),
           }
@@ -220,7 +213,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ exam_id: examId, exam_label: examLabel, question_number: questionNumber }),
+      body: JSON.stringify({ exam_id: examId, folder_id: folderId, question_number: questionNumber }),
     }).then(r => r.json()).then(data => {
       if (typeof data.completed_count === 'number') {
         setCompletedQuestions(n => n + 1)
@@ -230,12 +223,6 @@ export function StudyProvider({ children }: { children: ReactNode }) {
 
   const addStudyDay = (date: string) => {
     setStudyDays(prev => new Set([...prev, date]))
-  }
-
-  const addYearEntry = (examId: string, entry: YearEntry) => {
-    setExams(prev => prev.map(e =>
-      e.id === examId ? { ...e, years: [entry, ...e.years] } : e
-    ))
   }
 
   const startProcessing = (upload: ProcessingUpload) => {
@@ -250,7 +237,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     <StudyContext.Provider value={{
       streakDays, completedQuestions, overallProgress,
       examProgresses, studyDays, studyHistory, exams, processingUploads, failedUploads,
-      completeQuestion, resetProgress, addStudyDay, addYearEntry, startProcessing, dismissFailedUpload, refreshData,
+      completeQuestion, resetProgress, addStudyDay, startProcessing, dismissFailedUpload, refreshData,
     }}>
       {children}
     </StudyContext.Provider>

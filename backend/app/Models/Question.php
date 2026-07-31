@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Question extends Model
 {
     protected $fillable = [
-        'exam_id', 'exam_label', 'category', 'number',
+        'exam_id', 'exam_label', 'folder_id', 'category', 'number',
         'total_count', 'body', 'illustration', 'points', 'explanation',
     ];
 
@@ -23,12 +24,18 @@ class Question extends Model
         return $this->hasMany(Choice::class);
     }
 
+    public function folder(): BelongsTo
+    {
+        return $this->belongsTo(Folder::class);
+    }
+
     public function toApiArray(): array
     {
         return [
             'id'          => "{$this->exam_id}-{$this->id}",
             'examId'      => $this->exam_id,
-            'examLabel'   => $this->exam_label,
+            'folderId'    => $this->folder_id,
+            'folderName'  => $this->folder?->name ?? $this->exam_label ?? '',
             'category'    => $this->category,
             'number'      => $this->number,
             'totalCount'  => $this->total_count,

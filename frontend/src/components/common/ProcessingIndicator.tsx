@@ -16,7 +16,7 @@ export function ProcessingIndicator() {
   if (processingUploads.length === 0 && failedUploads.length === 0) return null
 
   const processingLabel = processingUploads.length === 1
-    ? processingUploads[0].examLabel
+    ? processingUploads[0].folderName
     : `${processingUploads.length}件`
 
   return (
@@ -37,7 +37,7 @@ export function ProcessingIndicator() {
           <span className="text-[13px] leading-none mt-0.5">❌</span>
           <div className="flex-1 min-w-0">
             <div className="text-[11px] font-bold mb-0.5" style={{ color: '#DC2626' }}>
-              {u.examLabel} 生成失敗
+              {u.folderName} 生成失敗
             </div>
             <div className="text-[10px] leading-relaxed" style={{ color: '#991B1B' }}>
               {u.errorMessage}

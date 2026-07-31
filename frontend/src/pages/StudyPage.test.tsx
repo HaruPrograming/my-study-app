@@ -12,7 +12,8 @@ vi.mock('../context/TutorialContext', () => ({
 const mockQuestion1 = {
   id: 'fe-1',
   examId: 'fe',
-  examLabel: '202305',
+  folderId: 202305,
+  folderName: '202305',
   category: 'コンピュータ構成',
   number: 1,
   totalCount: 2,
@@ -42,12 +43,12 @@ const mockQuestion2 = {
   body: '2問目の問題文',
 }
 
-function renderStudyPage(examId = 'fe', examLabel = '202305', query = '') {
+function renderStudyPage(examId = 'fe', folderId = '202305', query = '') {
   return render(
-    <MemoryRouter initialEntries={[`/study/${examId}/${examLabel}${query}`]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={[`/study/${examId}/${folderId}${query}`]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <StudyProvider>
         <Routes>
-          <Route path="/study/:examId/:examLabel" element={<StudyPage />} />
+          <Route path="/study/:examId/:folderId" element={<StudyPage />} />
         </Routes>
       </StudyProvider>
     </MemoryRouter>

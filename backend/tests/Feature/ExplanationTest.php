@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Choice;
+use App\Models\Folder;
 use App\Models\Question;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -12,24 +13,30 @@ class ExplanationTest extends TestCase
 {
     use RefreshDatabase;
 
+    private int $folderId;
+
     protected function setUp(): void
     {
         parent::setUp();
-        $this->actingAs(User::factory()->create());
+        $user = User::factory()->create();
+        $this->actingAs($user);
+        $folder = Folder::create(['user_id' => $user->id, 'exam_id' => 'fe', 'name' => '2024年 春期']);
+        $this->folderId = $folder->id;
     }
 
     public function test_explanation付きの問題をAPIで取得できる(): void
     {
         $q = Question::create([
-            'exam_id'     => 'fe',
-            'exam_label'  => '2024年 春期',
-            'category'    => 'コンピュータ構成',
-            'number'      => 1,
-            'total_count' => 3,
-            'body'        => 'CPUの役割はどれか。',
+            'exam_id'      => 'fe',
+            'exam_label'   => '2024年 春期',
+            'folder_id'    => $this->folderId,
+            'category'     => 'コンピュータ構成',
+            'number'       => 1,
+            'total_count'  => 3,
+            'body'         => 'CPUの役割はどれか。',
             'illustration' => null,
-            'points'      => [],
-            'explanation' => [
+            'points'       => [],
+            'explanation'  => [
                 ['title' => '役割', 'body' => 'CPUは中央処理装置であり、演算・制御を担当する。'],
                 ['title' => '構成', 'body' => 'ALUと制御装置から成る。'],
                 ['title' => '特徴', 'body' => 'クロック周波数が高いほど処理速度が速い。'],
@@ -37,7 +44,7 @@ class ExplanationTest extends TestCase
         ]);
         Choice::create(['question_id' => $q->id, 'label' => 'ア', 'text' => '演算を行う', 'is_correct' => true]);
 
-        $res = $this->getJson('/api/questions/fe/' . rawurlencode('2024年 春期'));
+        $res = $this->getJson('/api/questions/fe/' . $this->folderId);
 
         $res->assertOk();
         $data = $res->json();
@@ -51,19 +58,20 @@ class ExplanationTest extends TestCase
     public function test_explanationがnullの問題もAPIで取得できる(): void
     {
         $q = Question::create([
-            'exam_id'     => 'fe',
-            'exam_label'  => '2024年 春期',
-            'category'    => 'コンピュータ構成',
-            'number'      => 1,
-            'total_count' => 1,
-            'body'        => '問題文',
+            'exam_id'      => 'fe',
+            'exam_label'   => '2024年 春期',
+            'folder_id'    => $this->folderId,
+            'category'     => 'コンピュータ構成',
+            'number'       => 1,
+            'total_count'  => 1,
+            'body'         => '問題文',
             'illustration' => null,
-            'points'      => [],
-            'explanation' => null,
+            'points'       => [],
+            'explanation'  => null,
         ]);
         Choice::create(['question_id' => $q->id, 'label' => 'ア', 'text' => '選択肢', 'is_correct' => true]);
 
-        $res = $this->getJson('/api/questions/fe/' . rawurlencode('2024年 春期'));
+        $res = $this->getJson('/api/questions/fe/' . $this->folderId);
 
         $res->assertOk()
             ->assertJsonFragment(['explanation' => null]);
@@ -71,28 +79,33 @@ class ExplanationTest extends TestCase
 
     public function test_exam_idでフィルタリングされる(): void
     {
+        $user2    = User::factory()->create();
+        $apFolder = Folder::create(['user_id' => $user2->id, 'exam_id' => 'ap', 'name' => '2024年 春期']);
+
         Question::create([
-            'exam_id'     => 'fe',
-            'exam_label'  => '2024年 春期',
-            'category'    => 'テスト',
-            'number'      => 1,
-            'total_count' => 1,
-            'body'        => 'FE問題',
+            'exam_id'      => 'fe',
+            'exam_label'   => '2024年 春期',
+            'folder_id'    => $this->folderId,
+            'category'     => 'テスト',
+            'number'       => 1,
+            'total_count'  => 1,
+            'body'         => 'FE問題',
             'illustration' => null,
-            'points'      => [],
+            'points'       => [],
         ]);
         Question::create([
-            'exam_id'     => 'ap',
-            'exam_label'  => '2024年 春期',
-            'category'    => 'テスト',
-            'number'      => 1,
-            'total_count' => 1,
-            'body'        => 'AP問題',
+            'exam_id'      => 'ap',
+            'exam_label'   => '2024年 春期',
+            'folder_id'    => $apFolder->id,
+            'category'     => 'テスト',
+            'number'       => 1,
+            'total_count'  => 1,
+            'body'         => 'AP問題',
             'illustration' => null,
-            'points'      => [],
+            'points'       => [],
         ]);
 
-        $res = $this->getJson('/api/questions/fe/' . rawurlencode('2024年 春期'));
+        $res = $this->getJson('/api/questions/fe/' . $this->folderId);
 
         $res->assertOk()->assertJsonCount(1);
         $res->assertJsonFragment(['examId' => 'fe']);

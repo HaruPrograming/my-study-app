@@ -8,5 +8,5 @@ class UserQuestionCompletion extends Model
 {
     public $timestamps = false;
 
-    protected $fillable = ['user_id', 'exam_id', 'exam_label', 'question_number'];
+    protected $fillable = ['user_id', 'exam_id', 'exam_label', 'folder_id', 'question_number'];
 }

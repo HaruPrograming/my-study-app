@@ -3,8 +3,9 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { AddYearModal } from './AddYearModal'
 
 const mockStartProcessing = vi.fn()
+const mockRefreshData = vi.fn()
 vi.mock('../../context/StudyContext', () => ({
-  useStudyContext: () => ({ startProcessing: mockStartProcessing }),
+  useStudyContext: () => ({ startProcessing: mockStartProcessing, refreshData: mockRefreshData }),
 }))
 
 const makePdf = (name: string) =>
@@ -57,10 +58,10 @@ describe('AddYearModal - PDFタブ', () => {
   })
 
   it('API 成功後に startProcessing が呼ばれモーダルが閉じる', async () => {
-    const onClose = vi.fn()
+  const onClose = vi.fn()
     vi.mocked(globalThis.fetch).mockResolvedValue({
       ok: true,
-      json: async () => ({ upload_id: 1, status: 'pending' }),
+      json: async () => ({ upload_id: 1, folder_id: 1, status: 'pending' }),
     } as Response)
 
     render(<AddYearModal examId="fe" onClose={onClose} />)
@@ -71,7 +72,7 @@ describe('AddYearModal - PDFタブ', () => {
 
     await waitFor(() => {
       expect(mockStartProcessing).toHaveBeenCalledWith(
-        expect.objectContaining({ uploadId: 1, examId: 'fe', examLabel: '2024年春' })
+        expect.objectContaining({ uploadId: 1, examId: 'fe', folderId: 1, folderName: '2024年春' })
       )
       expect(onClose).toHaveBeenCalled()
     })
@@ -152,7 +153,7 @@ describe('AddYearModal - AI生成タブ', () => {
     const onClose = vi.fn()
     vi.mocked(globalThis.fetch).mockResolvedValue({
       ok: true,
-      json: async () => ({ upload_id: 2, status: 'pending' }),
+      json: async () => ({ upload_id: 2, folder_id: 2, status: 'pending' }),
     } as Response)
 
     render(<AddYearModal examId="fe" onClose={onClose} />)
@@ -165,17 +166,17 @@ describe('AddYearModal - AI生成タブ', () => {
 
     await waitFor(() => {
       expect(mockStartProcessing).toHaveBeenCalledWith(
-        expect.objectContaining({ uploadId: 2, examId: 'fe', examLabel: '2024年春' })
+        expect.objectContaining({ uploadId: 2, examId: 'fe', folderId: 2, folderName: '2024年春' })
       )
       expect(onClose).toHaveBeenCalled()
     })
   })
 
-  it('AI 生成で 409 のとき「この年度はすでに登録済みです」が表示される', async () => {
+  it('AI 生成で 409 のとき「このフォルダはすでに登録済みです」が表示される', async () => {
     vi.mocked(globalThis.fetch).mockResolvedValue({
       ok: false,
       status: 409,
-      json: async () => ({ message: 'この年度はすでに登録済みです' }),
+      json: async () => ({ message: 'このフォルダはすでに登録済みです' }),
     } as Response)
 
     render(<AddYearModal examId="fe" onClose={vi.fn()} />)
@@ -187,7 +188,66 @@ describe('AddYearModal - AI生成タブ', () => {
     fireEvent.click(screen.getByText('AI で問題を生成'))
 
     await waitFor(() =>
-      expect(screen.getByRole('alert')).toHaveTextContent('この年度はすでに登録済みです')
+      expect(screen.getByRole('alert')).toHaveTextContent('このフォルダはすでに登録済みです')
+    )
+  })
+})
+
+describe('AddYearModal - ファイル作成タブ', () => {
+  it('「ファイル作成」タブが表示される', () => {
+    render(<AddYearModal examId="fe" onClose={vi.fn()} />)
+    expect(screen.getByRole('tab', { name: 'ファイル作成' })).toBeInTheDocument()
+  })
+
+  it('「ファイル作成」タブをクリックすると説明文が表示される', () => {
+    render(<AddYearModal examId="fe" onClose={vi.fn()} />)
+    fireEvent.click(screen.getByRole('tab', { name: 'ファイル作成' }))
+    expect(screen.getByText(/空のフォルダを作成します/)).toBeInTheDocument()
+  })
+
+  it('タイトルが空のときはフォルダ作成ボタンを押しても fetch しない', () => {
+    render(<AddYearModal examId="fe" onClose={vi.fn()} />)
+    fireEvent.click(screen.getByRole('tab', { name: 'ファイル作成' }))
+    fireEvent.click(screen.getByText('フォルダを作成'))
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+
+  it('フォルダ作成成功後に refreshData が呼ばれモーダルが閉じる', async () => {
+    const onClose = vi.fn()
+    vi.mocked(globalThis.fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 1, name: '2024年春' }),
+    } as Response)
+
+    render(<AddYearModal examId="fe" onClose={onClose} />)
+    fireEvent.click(screen.getByRole('tab', { name: 'ファイル作成' }))
+    fireEvent.change(screen.getByPlaceholderText('例：2024年 春期'), { target: { value: '2024年春' } })
+    fireEvent.click(screen.getByText('フォルダを作成'))
+
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        '/api/folders',
+        expect.objectContaining({ method: 'POST', body: JSON.stringify({ exam_id: 'fe', name: '2024年春' }) }),
+      )
+      expect(mockRefreshData).toHaveBeenCalled()
+      expect(onClose).toHaveBeenCalled()
+    })
+  })
+
+  it('フォルダ作成 API エラー時にエラーメッセージが表示される', async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ message: 'このフォルダはすでに登録済みです' }),
+    } as Response)
+
+    render(<AddYearModal examId="fe" onClose={vi.fn()} />)
+    fireEvent.click(screen.getByRole('tab', { name: 'ファイル作成' }))
+    fireEvent.change(screen.getByPlaceholderText('例：2024年 春期'), { target: { value: '2024年春' } })
+    fireEvent.click(screen.getByText('フォルダを作成'))
+
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('このフォルダはすでに登録済みです')
     )
   })
 })
