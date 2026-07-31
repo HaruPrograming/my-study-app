@@ -42,4 +42,18 @@ class QuestionController extends Controller
 
         return response()->json($questions);
     }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $question = Question::findOrFail($id);
+
+        if ($question->folder?->user_id !== auth()->id()) {
+            return response()->json(['message' => '権限がありません'], 403);
+        }
+
+        $question->choices()->delete();
+        $question->delete();
+
+        return response()->json(['message' => '問題を削除しました']);
+    }
 }

@@ -41,4 +41,5 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/pdfs/{id}/status', [PdfController::class, 'status']);
     Route::post('/questions/generate', [QuestionController::class, 'generate']);
     Route::get('/questions/{examId}/{folderId}', [QuestionController::class, 'index']);
+    Route::delete('/questions/{id}', [QuestionController::class, 'destroy']);
 });
