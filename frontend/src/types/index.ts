@@ -69,6 +69,7 @@ export type Goal = {
   id: number
   body: string
   is_done: boolean
+  notify_at: string | null
   created_at: string
 }
 
