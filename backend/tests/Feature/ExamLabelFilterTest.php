@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Choice;
+use App\Models\Folder;
 use App\Models\Question;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -12,17 +13,26 @@ class ExamLabelFilterTest extends TestCase
 {
     use RefreshDatabase;
 
+    private User $user;
+
     protected function setUp(): void
     {
         parent::setUp();
-        $this->actingAs(User::factory()->create());
+        $this->user = User::factory()->create();
+        $this->actingAs($this->user);
     }
 
-    private function createQuestion(string $examId, string $examLabel, string $body, int $number = 1): Question
+    private function createFolder(string $examId, string $name): Folder
+    {
+        return Folder::create(['user_id' => $this->user->id, 'exam_id' => $examId, 'name' => $name]);
+    }
+
+    private function createQuestion(Folder $folder, string $body, int $number = 1): Question
     {
         $q = Question::create([
-            'exam_id'     => $examId,
-            'exam_label'  => $examLabel,
+            'exam_id'     => $folder->exam_id,
+            'exam_label'  => $folder->name,
+            'folder_id'   => $folder->id,
             'category'    => 'テスト',
             'number'      => $number,
             'total_count' => 1,
@@ -34,47 +44,53 @@ class ExamLabelFilterTest extends TestCase
         return $q;
     }
 
-    public function test_指定したexam_labelの問題のみ返す(): void
+    public function test_指定したfolder_idの問題のみ返す(): void
     {
-        $this->createQuestion('fe', '2023年春期', '春期の問題');
-        $this->createQuestion('fe', '2024年春期', '別年度の問題');
+        $folder1 = $this->createFolder('fe', '2023年春期');
+        $folder2 = $this->createFolder('fe', '2024年春期');
+        $this->createQuestion($folder1, '春期の問題');
+        $this->createQuestion($folder2, '別年度の問題');
 
-        $res = $this->getJson('/api/questions/fe/' . rawurlencode('2023年春期'));
+        $res = $this->getJson("/api/questions/fe/{$folder1->id}");
 
         $res->assertOk()->assertJsonCount(1);
         $res->assertJsonFragment(['body' => '春期の問題']);
         $res->assertJsonMissing(['body' => '別年度の問題']);
     }
 
-    public function test_別のexam_labelを指定すると別年度の問題が返る(): void
+    public function test_別のfolder_idを指定すると別フォルダの問題が返る(): void
     {
-        $this->createQuestion('fe', '2023年春期', '春期の問題');
-        $this->createQuestion('fe', '2024年春期', '別年度の問題');
+        $folder1 = $this->createFolder('fe', '2023年春期');
+        $folder2 = $this->createFolder('fe', '2024年春期');
+        $this->createQuestion($folder1, '春期の問題');
+        $this->createQuestion($folder2, '別年度の問題');
 
-        $res = $this->getJson('/api/questions/fe/' . rawurlencode('2024年春期'));
+        $res = $this->getJson("/api/questions/fe/{$folder2->id}");
 
         $res->assertOk()->assertJsonCount(1);
         $res->assertJsonFragment(['body' => '別年度の問題']);
         $res->assertJsonMissing(['body' => '春期の問題']);
     }
 
-    public function test_exam_idとexam_label両方でフィルタされる(): void
+    public function test_exam_idとfolder_id両方でフィルタされる(): void
     {
-        $this->createQuestion('fe', '2023年春期', 'FE春期の問題');
-        $this->createQuestion('ap', '2023年春期', 'AP春期の問題');
+        $feFolder = $this->createFolder('fe', '2023年春期');
+        $apFolder = $this->createFolder('ap', '2023年春期');
+        $this->createQuestion($feFolder, 'FE春期の問題');
+        $this->createQuestion($apFolder, 'AP春期の問題');
 
-        $res = $this->getJson('/api/questions/fe/' . rawurlencode('2023年春期'));
+        $res = $this->getJson("/api/questions/fe/{$feFolder->id}");
 
         $res->assertOk()->assertJsonCount(1);
         $res->assertJsonFragment(['examId' => 'fe']);
         $res->assertJsonMissing(['examId' => 'ap']);
     }
 
-    public function test_存在しないexam_labelは空配列を返す(): void
+    public function test_存在しないfolder_idは空配列を返す(): void
     {
-        $this->createQuestion('fe', '2023年春期', '春期の問題');
+        $this->createFolder('fe', '2023年春期');
 
-        $res = $this->getJson('/api/questions/fe/' . rawurlencode('存在しない'));
+        $res = $this->getJson('/api/questions/fe/99999');
 
         $res->assertOk()->assertJsonCount(0);
     }

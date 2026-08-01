@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Folder;
 use App\Models\StudyDay;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -12,12 +13,15 @@ class StudyDaysTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+    private int $folderId;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->user = User::factory()->create();
         $this->actingAs($this->user);
+        $folder = Folder::create(['user_id' => $this->user->id, 'exam_id' => 'fe', 'name' => '2024年 春期']);
+        $this->folderId = $folder->id;
     }
 
     public function test_学習日一覧と連続日数を取得できる(): void
@@ -73,7 +77,7 @@ class StudyDaysTest extends TestCase
 
         $this->postJson('/api/progress', [
             'exam_id'         => 'fe',
-            'exam_label'      => '2024年 春期',
+            'folder_id'       => $this->folderId,
             'question_number' => 1,
         ]);
 
@@ -82,8 +86,8 @@ class StudyDaysTest extends TestCase
 
     public function test_同日に複数回進捗保存しても学習日は1件のみ(): void
     {
-        $this->postJson('/api/progress', ['exam_id' => 'fe', 'exam_label' => '2024年 春期', 'question_number' => 1]);
-        $this->postJson('/api/progress', ['exam_id' => 'fe', 'exam_label' => '2024年 春期', 'question_number' => 1]);
+        $this->postJson('/api/progress', ['exam_id' => 'fe', 'folder_id' => $this->folderId, 'question_number' => 1]);
+        $this->postJson('/api/progress', ['exam_id' => 'fe', 'folder_id' => $this->folderId, 'question_number' => 1]);
 
         $this->assertSame(1, StudyDay::count());
     }

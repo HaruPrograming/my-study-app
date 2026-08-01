@@ -2,13 +2,14 @@ import { useState, useRef, useEffect } from 'react'
 import { FileIcon, DocumentIcon } from '../icons'
 import { useStudyContext } from '../../context/StudyContext'
 
-type Props = { examId: string; onClose: () => void }
-type Tab = 'pdf' | 'ai'
+type Props = { examId: string; onClose: () => void; folderId?: number; folderName?: string }
+type Tab = 'pdf' | 'ai' | 'file'
 
-export function AddYearModal({ examId, onClose }: Props) {
-  const { startProcessing } = useStudyContext()
+export function AddYearModal({ examId, onClose, folderId, folderName }: Props) {
+  const isAppendMode = folderId !== undefined
+  const { startProcessing, refreshData } = useStudyContext()
   const [tab, setTab] = useState<Tab>('pdf')
-  const [title, setTitle] = useState('')
+  const [name, setName] = useState(folderName ?? '')
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [answerFile, setAnswerFile] = useState<File | null>(null)
   const [aiPrompt, setAiPrompt] = useState('')
@@ -26,14 +27,14 @@ export function AddYearModal({ examId, onClose }: Props) {
   }, [onClose])
 
   const handleSave = async () => {
-    if (!title || !pdfFile) return
+    if (!name || !pdfFile) return
     setUploading(true)
     setError('')
 
     const formData = new FormData()
     formData.append('question_pdf', pdfFile)
     if (answerFile) formData.append('answer_pdf', answerFile)
-    formData.append('title', title)
+    formData.append('name', name)
     formData.append('exam_id', examId)
 
     try {
@@ -46,7 +47,7 @@ export function AddYearModal({ examId, onClose }: Props) {
       try { data = await res.json() } catch { /* HTML レスポンス時は無視 */ }
       if (!res.ok) throw new Error((data.message as string) ?? 'アップロードに失敗しました。')
 
-      startProcessing({ uploadId: data.upload_id as number, examId, examLabel: title })
+      startProcessing({ uploadId: data.upload_id as number, examId, folderId: data.folder_id as number, folderName: name })
       onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'アップロードに失敗しました。もう一度お試しください。')
@@ -55,25 +56,52 @@ export function AddYearModal({ examId, onClose }: Props) {
   }
 
   const handleAiGenerate = async () => {
-    if (!title || !aiPrompt) return
+    if (!isAppendMode && !name) return
+    if (!aiPrompt) return
     setUploading(true)
     setError('')
 
     try {
       const prompt = `${aiPrompt}\n\n（${questionCount}問生成してください）`
+      const body = isAppendMode
+        ? { prompt, folder_id: folderId, exam_id: examId }
+        : { prompt, name, exam_id: examId }
       const res = await fetch('/api/ai-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ prompt, title, exam_id: examId }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       if (!res.ok) throw new Error((data.message as string) ?? 'AI 生成に失敗しました。')
 
-      startProcessing({ uploadId: data.upload_id as number, examId, examLabel: title })
+      startProcessing({ uploadId: data.upload_id as number, examId, folderId: data.folder_id as number, folderName: name })
       onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'AI 生成に失敗しました。もう一度お試しください。')
+      setUploading(false)
+    }
+  }
+
+  const handleCreateFolder = async () => {
+    if (!name) return
+    setUploading(true)
+    setError('')
+
+    try {
+      const res = await fetch('/api/folders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ exam_id: examId, name }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error((data.message as string) ?? 'フォルダの作成に失敗しました。')
+
+      refreshData()
+      onClose()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'フォルダの作成に失敗しました。もう一度お試しください。')
       setUploading(false)
     }
   }
@@ -99,20 +127,31 @@ export function AddYearModal({ examId, onClose }: Props) {
 
         <div className="flex gap-1 mb-4 p-1 rounded-[10px]" style={{ background: 'var(--surface)' }}>
           <button role="tab" aria-selected={tab === 'pdf'} onClick={() => setTab('pdf')} style={tabStyle('pdf')}>
-            PDF アップロード
+            PDF
           </button>
           <button role="tab" aria-selected={tab === 'ai'} onClick={() => setTab('ai')} style={tabStyle('ai')}>
             AI 生成
           </button>
+          {!isAppendMode && (
+            <button role="tab" aria-selected={tab === 'file'} onClick={() => setTab('file')} style={tabStyle('file')}>
+              ファイル作成
+            </button>
+          )}
         </div>
 
         <div className="text-[10px] font-bold tracking-wider mb-1" style={{ color: 'var(--muted)' }}>タイトル</div>
-        <input value={title} onChange={e => setTitle(e.target.value)}
+        <input value={name} onChange={e => setName(e.target.value)}
+          disabled={isAppendMode}
           placeholder="例：2024年 春期"
           className="w-full h-10 rounded-[10px] px-3 text-[13px] mb-3 outline-none"
-          style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)' }} />
+          style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', color: 'var(--text)', opacity: isAppendMode ? 0.6 : 1 }} />
 
-        {tab === 'pdf' ? (
+        {tab === 'file' ? (
+          <div className="text-[13px] mb-3 rounded-[10px] px-3 py-3"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--muted)' }}>
+            空のフォルダを作成します。問題は後から AI 生成や PDF で追加できます。
+          </div>
+        ) : tab === 'pdf' ? (
           <>
             <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={e => setPdfFile(e.target.files?.[0] ?? null)} />
 
@@ -187,14 +226,20 @@ export function AddYearModal({ examId, onClose }: Props) {
             style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--muted)' }}>
             キャンセル
           </button>
-          {tab === 'pdf' ? (
-            <button onClick={handleSave} disabled={!title || !pdfFile || uploading}
+          {tab === 'file' ? (
+            <button onClick={handleCreateFolder} disabled={!name || uploading}
+              className="flex-[2] h-11 rounded-[12px] text-[13px] font-bold text-white disabled:opacity-50"
+              style={{ background: 'var(--accent)' }}>
+              {uploading ? '作成中…' : 'フォルダを作成'}
+            </button>
+          ) : tab === 'pdf' ? (
+            <button onClick={handleSave} disabled={!name || !pdfFile || uploading}
               className="flex-[2] h-11 rounded-[12px] text-[13px] font-bold text-white disabled:opacity-50"
               style={{ background: 'var(--accent)' }}>
               {uploading ? 'アップロード中…' : '保存して読み込む'}
             </button>
           ) : (
-            <button onClick={handleAiGenerate} disabled={!title || !aiPrompt || uploading}
+            <button onClick={handleAiGenerate} disabled={!name || !aiPrompt || uploading}
               className="flex-[2] h-11 rounded-[12px] text-[13px] font-bold text-white disabled:opacity-50"
               style={{ background: 'var(--accent)' }}>
               {uploading ? '生成中…' : 'AI で問題を生成'}

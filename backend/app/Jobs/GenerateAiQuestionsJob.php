@@ -37,7 +37,7 @@ class GenerateAiQuestionsJob implements ShouldQueue
         $upload->update(['status' => 'processing']);
 
         try {
-            $questions = $this->generateQuestions($this->prompt, $upload->exam_id, $upload->exam_label);
+            $questions = $this->generateQuestions($this->prompt, $upload->exam_id);
 
             if (count($questions) === 0) {
                 $upload->update([
@@ -52,6 +52,7 @@ class GenerateAiQuestionsJob implements ShouldQueue
                     $question = Question::create([
                         'exam_id'      => $upload->exam_id,
                         'exam_label'   => $upload->exam_label,
+                        'folder_id'    => $upload->folder_id,
                         'category'     => '科目A',
                         'number'       => $item['number'],
                         'total_count'  => count($questions),
@@ -82,7 +83,7 @@ class GenerateAiQuestionsJob implements ShouldQueue
         }
     }
 
-    private function generateQuestions(string $prompt, string $examId, string $examLabel): array
+    private function generateQuestions(string $prompt, string $examId): array
     {
         $apiKey = config('services.anthropic.key');
         if (!$apiKey) {
@@ -135,12 +136,12 @@ SYSTEM;
                 'content-type'      => 'application/json',
             ])->timeout(300)->post('https://api.anthropic.com/v1/messages', [
                 'model'      => 'claude-sonnet-4-6',
-                'max_tokens' => 16000,
+                'max_tokens' => 8000,
                 'system'     => $systemPrompt,
                 'tools'      => [[
-                    'type'           => 'web_search_20250305',
-                    'name'           => 'web_search',
-                    'max_uses'       => 5,
+                    'type'     => 'web_search_20250305',
+                    'name'     => 'web_search',
+                    'max_uses' => 3,
                 ]],
                 'messages' => [[
                     'role'    => 'user',

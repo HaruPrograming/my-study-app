@@ -87,6 +87,7 @@ class ProcessPdfJob implements ShouldQueue
                     $question = Question::create([
                         'exam_id'      => $upload->exam_id,
                         'exam_label'   => $upload->exam_label,
+                        'folder_id'    => $upload->folder_id,
                         'category'     => '科目A',
                         'number'       => $item['number'],
                         'total_count'  => count($parsed),

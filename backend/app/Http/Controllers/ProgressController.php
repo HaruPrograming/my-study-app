@@ -15,7 +15,7 @@ class ProgressController extends Controller
     public function index(): JsonResponse
     {
         return response()->json(
-            UserProgress::where('user_id', auth()->id())->get(['exam_id', 'exam_label', 'completed_count'])
+            UserProgress::where('user_id', auth()->id())->get(['exam_id', 'folder_id', 'completed_count'])
         );
     }
 
@@ -23,18 +23,18 @@ class ProgressController extends Controller
     {
         $userId = auth()->id();
         $data = $request->validate([
-            'exam_id'    => 'required|string',
-            'exam_label' => 'required|string',
+            'exam_id'   => 'required|string',
+            'folder_id' => 'required|integer',
         ]);
 
         UserQuestionCompletion::where('user_id', $userId)
             ->where('exam_id', $data['exam_id'])
-            ->where('exam_label', $data['exam_label'])
+            ->where('folder_id', $data['folder_id'])
             ->delete();
 
         UserProgress::where('user_id', $userId)
             ->where('exam_id', $data['exam_id'])
-            ->where('exam_label', $data['exam_label'])
+            ->where('folder_id', $data['folder_id'])
             ->update(['completed_count' => 0]);
 
         return response()->json(['status' => 'reset'], 200);
@@ -45,7 +45,7 @@ class ProgressController extends Controller
         $userId = auth()->id();
         $data = $request->validate([
             'exam_id'         => 'required|string',
-            'exam_label'      => 'required|string',
+            'folder_id'       => 'required|integer',
             'question_number' => 'required|integer|min:1',
         ]);
 
@@ -53,7 +53,7 @@ class ProgressController extends Controller
             UserQuestionCompletion::create([
                 'user_id'         => $userId,
                 'exam_id'         => $data['exam_id'],
-                'exam_label'      => $data['exam_label'],
+                'folder_id'       => $data['folder_id'],
                 'question_number' => $data['question_number'],
             ]);
         } catch (UniqueConstraintViolationException) {
@@ -62,13 +62,13 @@ class ProgressController extends Controller
 
         $uniqueCount = UserQuestionCompletion::where('user_id', $userId)
             ->where('exam_id', $data['exam_id'])
-            ->where('exam_label', $data['exam_label'])
+            ->where('folder_id', $data['folder_id'])
             ->count();
 
         $progress = UserProgress::firstOrNew([
-            'user_id'    => $userId,
-            'exam_id'    => $data['exam_id'],
-            'exam_label' => $data['exam_label'],
+            'user_id'   => $userId,
+            'exam_id'   => $data['exam_id'],
+            'folder_id' => $data['folder_id'],
         ]);
         $progress->completed_count = $uniqueCount;
         $progress->save();
@@ -85,24 +85,24 @@ class ProgressController extends Controller
             ->where('user_id', $userId)
             ->where('date', $today)
             ->where('exam_id', $data['exam_id'])
-            ->where('exam_label', $data['exam_label'])
+            ->where('folder_id', $data['folder_id'])
             ->increment('count');
 
         if (!$affected) {
             try {
                 UserDailyProgress::create([
-                    'user_id'    => $userId,
-                    'date'       => $today,
-                    'exam_id'    => $data['exam_id'],
-                    'exam_label' => $data['exam_label'],
-                    'count'      => 1,
+                    'user_id'   => $userId,
+                    'date'      => $today,
+                    'exam_id'   => $data['exam_id'],
+                    'folder_id' => $data['folder_id'],
+                    'count'     => 1,
                 ]);
             } catch (UniqueConstraintViolationException) {
                 \DB::table('user_daily_progress')
                     ->where('user_id', $userId)
                     ->where('date', $today)
                     ->where('exam_id', $data['exam_id'])
-                    ->where('exam_label', $data['exam_label'])
+                    ->where('folder_id', $data['folder_id'])
                     ->increment('count');
             }
         }

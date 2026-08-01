@@ -24,7 +24,8 @@ function PointIcon({ icon }: { icon: Point['icon'] }) {
 }
 
 export function StudyPage() {
-  const { examId, examLabel } = useParams<{ examId: string; examLabel: string }>()
+  const { examId, folderId: folderIdStr } = useParams<{ examId: string; folderId: string }>()
+  const folderId = Number(folderIdStr ?? '0')
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { completeQuestion } = useStudyContext()
@@ -57,7 +58,7 @@ export function StudyPage() {
       setLoading(false)
       return
     }
-    fetch(`/api/questions/${examId}/${examLabel}`, { credentials: 'include' })
+    fetch(`/api/questions/${examId}/${folderId}`, { credentials: 'include' })
       .then(res => {
         if (!res.ok) throw new Error('fetch failed')
         return res.json()
@@ -65,7 +66,7 @@ export function StudyPage() {
       .then((data: Question[]) => setExamQuestions(data))
       .catch(() => setExamQuestions([]))
       .finally(() => setLoading(false))
-  }, [examId, examLabel, isTutorial])
+  }, [examId, folderId, isTutorial])
 
   // チュートリアルstep6-9のモード・タブ自動切替とハイライト
   useEffect(() => {
@@ -117,18 +118,22 @@ export function StudyPage() {
 
   if (!q) return <div className="p-4">問題が見つかりません</div>
 
-  const pct = Math.round(q.number / q.totalCount * 100)
-  const resumeKey = `study_resume_${examId}_${examLabel}`
+  const displayNumber = currentIndex + 1
+  const displayTotal = examQuestions.length
+  const pct = Math.round(displayNumber / displayTotal * 100)
+  const resumeKey = `study_resume_${folderId}`
 
   const canProceed = studyMode === 'input' || selectedChoice !== null
 
   const handleNext = () => {
-    completeQuestion(examId ?? '', examLabel ?? '', q.number)
+    completeQuestion(examId ?? '', folderId, q.number)
     if (currentIndex < examQuestions.length - 1) {
-      setCurrentIndex(i => i + 1)
+      const nextIndex = currentIndex + 1
+      localStorage.setItem(resumeKey, String(nextIndex))
+      setCurrentIndex(nextIndex)
     } else {
       localStorage.removeItem(resumeKey)
-      navigate(`/study/${examId}/${examLabel}/complete`)
+      navigate(`/study/${examId}/${folderId}/complete`)
     }
   }
 
@@ -145,6 +150,19 @@ export function StudyPage() {
     if (studyMode === 'output' && selectedChoice === null) {
       setSelectedChoice(label)
     }
+  }
+
+  const handleDeleteQuestion = async () => {
+    if (!q) return
+    await fetch(`/api/questions/${q.dbId}`, { method: 'DELETE', credentials: 'include' })
+    const remaining = examQuestions.filter((_, i) => i !== currentIndex)
+    if (remaining.length === 0) {
+      navigate('/', { state: { examId } })
+      return
+    }
+    setExamQuestions(remaining.map(r => ({ ...r, totalCount: remaining.length })))
+    setCurrentIndex(prev => Math.min(prev, remaining.length - 1))
+    setSelectedChoice(null)
   }
 
   const getChoiceStyle = (isCorrect: boolean, label: string) => {
@@ -213,7 +231,7 @@ export function StudyPage() {
       </div>
 
       <div className="text-center text-[10px] py-0.5" style={{ color: 'var(--muted)' }}>
-        {q.examLabel.replace(' ', ' · ')} &nbsp;·&nbsp; Q{q.number} / {q.totalCount}
+        {(q.folderName ?? '').replace(' ', ' · ')} &nbsp;·&nbsp; Q{displayNumber} / {displayTotal}
       </div>
 
       <ProgressBar pct={pct} showLabel />
@@ -226,7 +244,7 @@ export function StudyPage() {
         <div className="flex gap-1.5 mb-3">
           <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
             style={{ background: 'var(--orange-soft)', border: '1px solid rgba(245,124,43,0.3)', color: 'var(--orange)' }}>
-            {q.examLabel}
+            {q.folderName}
           </span>
           <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
             style={{ background: 'var(--accent-soft)', border: '1px solid rgba(46,158,91,0.3)', color: 'var(--accent)' }}>
@@ -345,26 +363,36 @@ export function StudyPage() {
       </div>
 
       {/* Footer */}
-      <div className="fixed bottom-0 left-0 w-full flex gap-2 px-[18px] pt-2.5"
+      <div className="fixed bottom-0 left-0 w-full px-[18px] pt-2.5"
         style={{ background: 'linear-gradient(to top,#fff 65%,transparent)', paddingBottom: 'calc(1.75rem + env(safe-area-inset-bottom))' }}>
-        {currentIndex > 0 && (
-          <button onClick={handlePrev} aria-label="前へ"
-            className="flex-1 h-[50px] rounded-[13px] text-[13px] font-bold"
-            style={{ background: 'var(--surface)', border: '1.5px solid var(--accent)', color: 'var(--accent)' }}>
-            ← 前へ
+        <div className="flex gap-2 mb-1.5">
+          {currentIndex > 0 && (
+            <button onClick={handlePrev} aria-label="前へ"
+              className="flex-1 h-[50px] rounded-[13px] text-[13px] font-bold"
+              style={{ background: 'var(--surface)', border: '1.5px solid var(--accent)', color: 'var(--accent)' }}>
+              ← 前へ
+            </button>
+          )}
+          <button
+            onClick={handleNext}
+            disabled={!canProceed}
+            className="flex-[2] h-[50px] rounded-[13px] text-[15px] font-bold text-white"
+            style={{
+              background: canProceed ? 'var(--accent)' : 'var(--muted)',
+              boxShadow: canProceed ? '0 4px 12px var(--accent-glow)' : 'none',
+              opacity: canProceed ? 1 : 0.5,
+            }}>
+            次へ →
+          </button>
+        </div>
+        {!isTutorial && (
+          <button
+            onClick={handleDeleteQuestion}
+            className="w-full h-8 rounded-[10px] text-[11px] font-bold"
+            style={{ background: 'var(--surface)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444' }}>
+            この問題を削除
           </button>
         )}
-        <button
-          onClick={handleNext}
-          disabled={!canProceed}
-          className="flex-[2] h-[50px] rounded-[13px] text-[15px] font-bold text-white"
-          style={{
-            background: canProceed ? 'var(--accent)' : 'var(--muted)',
-            boxShadow: canProceed ? '0 4px 12px var(--accent-glow)' : 'none',
-            opacity: canProceed ? 1 : 0.5,
-          }}>
-          次へ →
-        </button>
       </div>
 
       {/* チュートリアルオーバーレイ（steps 6-9） */}

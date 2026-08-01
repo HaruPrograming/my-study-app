@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Folder;
 use App\Models\PdfUpload;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -45,7 +46,7 @@ class PdfDuplicateCheckTest extends TestCase
 
         $res = $this->post('/api/pdfs/upload', [
             'question_pdf' => UploadedFile::fake()->createWithContent('q.pdf', $pdfContent),
-            'title'        => '別のタイトルでも弾く',
+            'name'         => '別のタイトルでも弾く',
             'exam_id'      => 'fe',
         ]);
 
@@ -71,7 +72,7 @@ class PdfDuplicateCheckTest extends TestCase
 
         $res = $this->post('/api/pdfs/upload', [
             'question_pdf' => UploadedFile::fake()->createWithContent('q.pdf', $pdfContent),
-            'title'        => '全く違うタイトル',
+            'name'         => '全く違うタイトル',
             'exam_id'      => 'ap',
         ]);
 
@@ -93,7 +94,7 @@ class PdfDuplicateCheckTest extends TestCase
 
         $res = $this->post('/api/pdfs/upload', [
             'question_pdf' => UploadedFile::fake()->createWithContent('q.pdf', 'different content B'),
-            'title'        => '2024年 秋期',
+            'name'         => '2024年 秋期',
             'exam_id'      => 'fe',
         ]);
 
@@ -118,7 +119,7 @@ class PdfDuplicateCheckTest extends TestCase
 
         $res = $this->post('/api/pdfs/upload', [
             'question_pdf' => UploadedFile::fake()->createWithContent('q.pdf', $pdfContent),
-            'title'        => '2024年 春期',
+            'name'         => '2024年 春期',
             'exam_id'      => 'fe',
         ]);
 
@@ -143,30 +144,36 @@ class PdfDuplicateCheckTest extends TestCase
 
         $res = $this->post('/api/pdfs/upload', [
             'question_pdf' => UploadedFile::fake()->createWithContent('q.pdf', $pdfContent),
-            'title'        => '2024年 春期',
+            'name'         => '2024年 春期',
             'exam_id'      => 'fe',
         ]);
 
         $res->assertStatus(202);
     }
 
-    public function test_AI生成でも同じexam_idとexam_labelが存在する場合409を返す(): void
+    public function test_AI生成でも同じフォルダが存在する場合409を返す(): void
     {
+        $folder = Folder::create([
+            'user_id' => $this->user->id,
+            'exam_id' => 'fe',
+            'name'    => '2024年 春期',
+        ]);
         PdfUpload::create([
             'user_id'           => $this->user->id,
             'exam_id'           => 'fe',
             'exam_label'        => '2024年 春期',
+            'folder_id'         => $folder->id,
             'question_pdf_path' => null,
             'status'            => 'done',
         ]);
 
         $res = $this->postJson('/api/ai-generate', [
             'prompt'  => '問題を20問生成してください',
-            'title'   => '2024年 春期',
+            'name'    => '2024年 春期',
             'exam_id' => 'fe',
         ]);
 
         $res->assertStatus(409)
-            ->assertJsonFragment(['message' => 'この年度はすでに登録済みです']);
+            ->assertJsonFragment(['message' => 'このフォルダはすでに登録済みです']);
     }
 }

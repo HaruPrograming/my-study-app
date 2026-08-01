@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { StudyProvider } from './context/StudyContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
@@ -6,10 +7,16 @@ import { TopPage } from './pages/TopPage'
 import { StudyPage } from './pages/StudyPage'
 import { CompletePage } from './pages/CompletePage'
 import { RecordPage } from './pages/RecordPage'
+import { GoalPage } from './pages/GoalPage'
 import { LoginPage } from './pages/LoginPage'
+import { registerPushSubscription } from './utils/pushNotification'
 
 function AppContent() {
   const { user, loading } = useAuth()
+
+  useEffect(() => {
+    if (user) registerPushSubscription()
+  }, [user])
 
   if (loading) {
     return (
@@ -27,9 +34,10 @@ function AppContent() {
     <StudyProvider>
       <Routes>
         <Route path="/" element={<TopPage />} />
-        <Route path="/study/:examId/:examLabel" element={<StudyPage />} />
-        <Route path="/study/:examId/:examLabel/complete" element={<CompletePage />} />
+        <Route path="/study/:examId/:folderId" element={<StudyPage />} />
+        <Route path="/study/:examId/:folderId/complete" element={<CompletePage />} />
         <Route path="/record" element={<RecordPage />} />
+        <Route path="/goals" element={<GoalPage />} />
       </Routes>
     </StudyProvider>
   )

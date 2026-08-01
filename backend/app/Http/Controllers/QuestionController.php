@@ -30,16 +30,30 @@ class QuestionController extends Controller
         return response()->json($result);
     }
 
-    public function index(string $examId, string $examLabel): JsonResponse
+    public function index(string $examId, int $folderId): JsonResponse
     {
-        $questions = Question::with('choices')
+        $questions = Question::with(['choices', 'folder'])
             ->where('exam_id', $examId)
-            ->where('exam_label', $examLabel)
+            ->where('folder_id', $folderId)
             ->orderBy('number')
             ->get()
             ->map(fn (Question $q) => $q->toApiArray())
             ->values();
 
         return response()->json($questions);
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $question = Question::findOrFail($id);
+
+        if ($question->folder?->user_id !== auth()->id()) {
+            return response()->json(['message' => '権限がありません'], 403);
+        }
+
+        $question->choices()->delete();
+        $question->delete();
+
+        return response()->json(['message' => '問題を削除しました']);
     }
 }
