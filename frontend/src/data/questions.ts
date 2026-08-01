@@ -3,8 +3,10 @@ import type { Question } from '../types'
 export const questions: Question[] = [
   {
     id: 'fe-2023a-55',
+    dbId: 0,
     examId: 'fe',
-    examLabel: '2023年 秋期',
+    folderId: 0,
+    folderName: '2023年 秋期',
     category: 'コンピュータ構成',
     number: 55,
     totalCount: 80,
@@ -35,8 +37,10 @@ export const questions: Question[] = [
   },
   {
     id: 'fe-2023a-56',
+    dbId: 0,
     examId: 'fe',
-    examLabel: '2023年 秋期',
+    folderId: 0,
+    folderName: '2023年 秋期',
     category: 'コンピュータ構成',
     number: 56,
     totalCount: 80,

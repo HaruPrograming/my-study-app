@@ -5,8 +5,10 @@ import type { Question } from '../../types'
 
 const mockQuestion: Question = {
   id: 'fe-1',
+  dbId: 0,
   examId: 'fe',
-  examLabel: '2024年 春期',
+  folderId: 0,
+  folderName: '2024年 春期',
   category: 'コンピュータ構成',
   number: 1,
   totalCount: 10,
