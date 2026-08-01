@@ -157,7 +157,7 @@ export function RecordPage() {
                 const examName = exams.find(ex => ex.id === e.exam_id)?.name ?? e.exam_id
                 return (
                   <div key={i} className="flex items-center justify-between text-[11px] py-0.5" style={{ color: 'var(--text)' }}>
-                    <span>{examName} · {e.exam_label}</span>
+                    <span>{examName}</span>
                     <span className="font-bold" style={{ color: 'var(--accent)' }}>{e.count}問</span>
                   </div>
                 )
