@@ -5,6 +5,7 @@ import type { Goal } from '../types'
 export function GoalPage() {
   const [goals, setGoals] = useState<Goal[]>([])
   const [inputBody, setInputBody] = useState('')
+  const [inputNotifyAt, setInputNotifyAt] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -25,8 +26,20 @@ export function GoalPage() {
     })
     if (!res.ok) return
     const newGoal: Goal = await res.json()
+
+    if (inputNotifyAt) {
+      await fetch(`/api/goals/${newGoal.id}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ notify_at: inputNotifyAt }),
+      })
+      newGoal.notify_at = inputNotifyAt
+    }
+
     setGoals(prev => [newGoal, ...prev])
     setInputBody('')
+    setInputNotifyAt('')
   }
 
   const handleToggle = async (goal: Goal) => {
@@ -35,6 +48,18 @@ export function GoalPage() {
       credentials: 'include',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({ is_done: !goal.is_done }),
+    })
+    if (!res.ok) return
+    const updated: Goal = await res.json()
+    setGoals(prev => prev.map(g => g.id === goal.id ? updated : g))
+  }
+
+  const handleSetNotifyAt = async (goal: Goal, notifyAt: string) => {
+    const res = await fetch(`/api/goals/${goal.id}`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ notify_at: notifyAt || null }),
     })
     if (!res.ok) return
     const updated: Goal = await res.json()
@@ -51,6 +76,13 @@ export function GoalPage() {
     setGoals(prev => prev.filter(g => g.id !== goal.id))
   }
 
+  const toDatetimeLocal = (iso: string | null | undefined) => {
+    if (!iso) return ''
+    const d = new Date(iso)
+    const offset = d.getTimezoneOffset() * 60000
+    return new Date(d.getTime() - offset).toISOString().slice(0, 16)
+  }
+
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--bg)' }}>
       {/* Header */}
@@ -59,7 +91,7 @@ export function GoalPage() {
           🎯 目標管理
         </div>
         {/* Input */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 mb-2">
           <input
             type="text"
             placeholder="目標を入力してください"
@@ -78,6 +110,14 @@ export function GoalPage() {
             追加
           </button>
         </div>
+        <input
+          type="datetime-local"
+          value={inputNotifyAt}
+          onChange={e => setInputNotifyAt(e.target.value)}
+          aria-label="通知日時"
+          className="w-full rounded-[10px] px-3.5 py-2 text-[12px] outline-none"
+          style={{ background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.85)', border: '1.5px solid rgba(255,255,255,0.25)', colorScheme: 'dark' }}
+        />
       </div>
 
       {/* List */}
@@ -93,36 +133,52 @@ export function GoalPage() {
         {goals.map(goal => (
           <div
             key={goal.id}
-            onClick={() => handleToggle(goal)}
-            className="flex items-center gap-3 rounded-[12px] px-3.5 py-3 mb-2 cursor-pointer"
+            className="rounded-[12px] px-3.5 py-3 mb-2"
             style={{ background: 'var(--surface)', border: '1px solid var(--border)', opacity: goal.is_done ? 0.6 : 1 }}
           >
-            <input
-              type="checkbox"
-              checked={goal.is_done}
-              onChange={() => handleToggle(goal)}
-              onClick={e => e.stopPropagation()}
-              className="w-4 h-4 rounded flex-shrink-0 cursor-pointer"
-              style={{ accentColor: 'var(--accent)' }}
-              aria-label={`目標を完了にする: ${goal.body}`}
-            />
-            <span
-              className="flex-1 text-[13px]"
-              style={{
-                color: 'var(--text)',
-                textDecoration: goal.is_done ? 'line-through' : 'none',
-              }}
+            <div
+              onClick={() => handleToggle(goal)}
+              className="flex items-center gap-3 cursor-pointer"
             >
-              {goal.body}
-            </span>
-            <button
-              onClick={e => { e.stopPropagation(); handleDelete(goal) }}
-              className="text-[11px] px-2 py-1 rounded-[6px] flex-shrink-0"
-              style={{ color: 'var(--muted)', border: '1px solid var(--border)' }}
-              aria-label={`目標を削除: ${goal.body}`}
-            >
-              削除
-            </button>
+              <input
+                type="checkbox"
+                checked={goal.is_done}
+                onChange={() => handleToggle(goal)}
+                onClick={e => e.stopPropagation()}
+                className="w-4 h-4 rounded flex-shrink-0 cursor-pointer"
+                style={{ accentColor: 'var(--accent)' }}
+                aria-label={`目標を完了にする: ${goal.body}`}
+              />
+              <span
+                className="flex-1 text-[13px]"
+                style={{
+                  color: 'var(--text)',
+                  textDecoration: goal.is_done ? 'line-through' : 'none',
+                }}
+              >
+                {goal.body}
+              </span>
+              <button
+                onClick={e => { e.stopPropagation(); handleDelete(goal) }}
+                className="text-[11px] px-2 py-1 rounded-[6px] flex-shrink-0"
+                style={{ color: 'var(--muted)', border: '1px solid var(--border)' }}
+                aria-label={`目標を削除: ${goal.body}`}
+              >
+                削除
+              </button>
+            </div>
+            {/* 通知日時 */}
+            <div className="flex items-center gap-2 mt-2 pl-7">
+              <span className="text-[10px]" style={{ color: 'var(--muted)' }}>🔔</span>
+              <input
+                type="datetime-local"
+                value={toDatetimeLocal(goal.notify_at)}
+                onChange={e => handleSetNotifyAt(goal, e.target.value)}
+                aria-label={`通知日時: ${goal.body}`}
+                className="text-[11px] rounded-[6px] px-2 py-0.5 outline-none"
+                style={{ color: 'var(--muted)', border: '1px solid var(--border)', background: 'transparent' }}
+              />
+            </div>
           </div>
         ))}
       </div>

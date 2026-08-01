@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { StudyProvider } from './context/StudyContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
@@ -8,9 +9,14 @@ import { CompletePage } from './pages/CompletePage'
 import { RecordPage } from './pages/RecordPage'
 import { GoalPage } from './pages/GoalPage'
 import { LoginPage } from './pages/LoginPage'
+import { registerPushSubscription } from './utils/pushNotification'
 
 function AppContent() {
   const { user, loading } = useAuth()
+
+  useEffect(() => {
+    if (user) registerPushSubscription()
+  }, [user])
 
   if (loading) {
     return (
