@@ -40,7 +40,8 @@ class GoalController extends Controller
         }
 
         $data = $request->validate([
-            'is_done' => ['required', 'boolean'],
+            'is_done'   => ['sometimes', 'boolean'],
+            'notify_at' => ['sometimes', 'nullable', 'date'],
         ]);
 
         $goal->update($data);

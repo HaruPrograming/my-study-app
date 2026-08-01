@@ -7,6 +7,7 @@ use App\Http\Controllers\ExamController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\GoalController;
 use App\Http\Controllers\PdfController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ProgressController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\StudyDayController;
@@ -43,6 +44,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/questions/generate', [QuestionController::class, 'generate']);
     Route::get('/questions/{examId}/{folderId}', [QuestionController::class, 'index']);
     Route::delete('/questions/{id}', [QuestionController::class, 'destroy']);
+
+    Route::post('/push-subscriptions', [PushSubscriptionController::class, 'store']);
 
     Route::get('/goals', [GoalController::class, 'index']);
     Route::post('/goals', [GoalController::class, 'store']);
