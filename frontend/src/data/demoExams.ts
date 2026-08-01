@@ -11,6 +11,7 @@ export const demoExams: Exam[] = [
     years: [
       {
         id: 'demo-year-1',
+        folderId: 0,
         label: 'デモ学習',
         season: 'spring',
         isNew: true,

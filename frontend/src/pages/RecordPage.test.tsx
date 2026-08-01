@@ -17,14 +17,14 @@ const mockHistory = [
   {
     date: '2026-07-17',
     exams: [
-      { exam_id: 'fe', exam_label: '2024年 春期', count: 5 },
+      { exam_id: 'fe', folder_id: 1, count: 5 },
     ],
   },
   {
     date: '2026-07-15',
     exams: [
-      { exam_id: 'fe', exam_label: '2024年 春期', count: 3 },
-      { exam_id: 'ap', exam_label: '2024年 秋期', count: 2 },
+      { exam_id: 'fe', folder_id: 1, count: 3 },
+      { exam_id: 'ap', folder_id: 2, count: 2 },
     ],
   },
 ]

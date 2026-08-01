@@ -1,9 +1,9 @@
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { GoalPage } from './GoalPage'
 
 const mockFetch = vi.fn()
-global.fetch = mockFetch
 
 function renderGoalPage() {
   return render(
@@ -14,12 +14,13 @@ function renderGoalPage() {
 }
 
 const sampleGoals = [
-  { id: 1, body: '基本情報を1ヶ月で完走する', is_done: false, created_at: '2026-07-31T00:00:00Z' },
-  { id: 2, body: '毎日30分学習する', is_done: true, created_at: '2026-07-30T00:00:00Z' },
+  { id: 1, body: '基本情報を1ヶ月で完走する', is_done: false, notify_at: null, created_at: '2026-07-31T00:00:00Z' },
+  { id: 2, body: '毎日30分学習する', is_done: true, notify_at: null, created_at: '2026-07-30T00:00:00Z' },
 ]
 
 describe('GoalPage', () => {
   beforeEach(() => {
+    vi.stubGlobal('fetch', mockFetch)
     mockFetch.mockResolvedValue({
       ok: true,
       json: async () => sampleGoals,
@@ -28,6 +29,7 @@ describe('GoalPage', () => {
 
   afterEach(() => {
     vi.clearAllMocks()
+    vi.unstubAllGlobals()
   })
 
   it('目標一覧が表示される', async () => {
