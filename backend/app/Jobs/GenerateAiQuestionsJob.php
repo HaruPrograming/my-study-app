@@ -39,14 +39,6 @@ class GenerateAiQuestionsJob implements ShouldQueue
         try {
             $questions = $this->generateQuestions($this->prompt, $upload->exam_id);
 
-            if (count($questions) === 0) {
-                $upload->update([
-                    'status'        => 'failed',
-                    'error_message' => 'AI による問題生成に失敗しました。',
-                ]);
-                return;
-            }
-
             $count = DB::transaction(function () use ($questions, $upload) {
                 foreach ($questions as $item) {
                     $question = Question::create([
@@ -87,7 +79,7 @@ class GenerateAiQuestionsJob implements ShouldQueue
     {
         $apiKey = config('services.anthropic.key');
         if (!$apiKey) {
-            return [];
+            throw new \RuntimeException('ANTHROPIC_API_KEY が設定されていません。');
         }
 
         $systemPrompt = <<<SYSTEM
@@ -128,43 +120,48 @@ class GenerateAiQuestionsJob implements ShouldQueue
 - points は必ず target/bolt/bulb 各1つ
 SYSTEM;
 
-        try {
-            $response = Http::withHeaders([
-                'x-api-key'         => $apiKey,
-                'anthropic-version' => '2023-06-01',
-                'anthropic-beta'    => 'web-search-2025-03-05',
-                'content-type'      => 'application/json',
-            ])->timeout(300)->post('https://api.anthropic.com/v1/messages', [
-                'model'      => 'claude-sonnet-4-6',
-                'max_tokens' => 8000,
-                'system'     => $systemPrompt,
-                'tools'      => [[
-                    'type'     => 'web_search_20250305',
-                    'name'     => 'web_search',
-                    'max_uses' => 3,
-                ]],
-                'messages' => [[
-                    'role'    => 'user',
-                    'content' => $prompt,
-                ]],
-            ]);
+        $response = Http::withHeaders([
+            'x-api-key'         => $apiKey,
+            'anthropic-version' => '2023-06-01',
+            'anthropic-beta'    => 'web-search-2025-03-05',
+            'content-type'      => 'application/json',
+        ])->timeout(300)->post('https://api.anthropic.com/v1/messages', [
+            'model'      => 'claude-sonnet-4-6',
+            'max_tokens' => 8000,
+            'system'     => $systemPrompt,
+            'tools'      => [[
+                'type'     => 'web_search_20250305',
+                'name'     => 'web_search',
+                'max_uses' => 3,
+            ]],
+            'messages' => [[
+                'role'    => 'user',
+                'content' => $prompt,
+            ]],
+        ]);
 
-            if (!$response->successful()) {
-                return [];
-            }
-
-            $content = $response->json('content', []);
-            $text = '';
-            foreach ($content as $block) {
-                if (($block['type'] ?? '') === 'text') {
-                    $text .= $block['text'];
-                }
-            }
-
-            return $this->parseJsonResponse($text);
-        } catch (\Throwable) {
-            return [];
+        if (!$response->successful()) {
+            $body = mb_substr($response->body(), 0, 300);
+            throw new \RuntimeException("Anthropic API エラー (HTTP {$response->status()}): {$body}");
         }
+
+        $stopReason = $response->json('stop_reason', '');
+        $content = $response->json('content', []);
+        $text = '';
+        foreach ($content as $block) {
+            if (($block['type'] ?? '') === 'text') {
+                $text .= $block['text'];
+            }
+        }
+
+        $questions = $this->parseJsonResponse($text);
+        if (count($questions) === 0) {
+            throw new \RuntimeException(
+                "JSON パース失敗。stop_reason={$stopReason}, text_length=" . strlen($text) .
+                ', text_preview=' . mb_substr($text, 0, 200)
+            );
+        }
+        return $questions;
     }
 
     private function parseJsonResponse(string $text): array
@@ -175,8 +172,8 @@ SYSTEM;
         try {
             $data = json_decode(trim($text), true, 512, JSON_THROW_ON_ERROR);
             return $data['questions'] ?? [];
-        } catch (\JsonException) {
-            return [];
+        } catch (\JsonException $e) {
+            throw new \RuntimeException('JSON デコード失敗: ' . $e->getMessage() . ' text_preview=' . mb_substr($text, 0, 200));
         }
     }
 }
